@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.log
+.DS_Store
+.env
+.venv/
+venv/
+.ruff_cache/
+temp/
+logs/
+.instagram-account-session.json
+.instagram-session-cookies.txt

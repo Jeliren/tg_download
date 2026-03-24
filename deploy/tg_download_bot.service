@@ -1,0 +1,21 @@
+[Unit]
+Description=tg_download Telegram bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tgdownload
+WorkingDirectory=/opt/tg_download
+EnvironmentFile=/opt/tg_download/.env
+ExecStart=/opt/tg_download/.venv/bin/python /opt/tg_download/main.py
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+# Bot logs both to stdout/stderr and to logs/bot.log inside the project.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

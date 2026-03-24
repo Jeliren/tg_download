@@ -1,0 +1,19 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = [
+  ".venv",
+  "__pycache__",
+  "logs",
+  "temp",
+]
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "I",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["bot", "config", "core", "services", "tests", "utils"]
