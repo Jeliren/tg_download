@@ -107,4 +107,24 @@ git pull
 Дальше:
 
 - без Docker: при изменении зависимостей снова выполнить `pip install -r requirements.txt`;
-- с Docker: выполнить `docker compose up -d --build`.
+- с Docker: выполнить `docker compose up -d --build`;
+- если в репозитории изменился `.env.example`, вручную перенесите новые переменные в ваш локальный `.env`, потому что `.env` не обновляется через Git.
+
+## Telegram proxy fallback
+
+Проект умеет автоматически переключаться на proxy для Telegram API:
+
+- сначала бот пробует достучаться до `api.telegram.org` напрямую;
+- если прямой доступ работает, proxy не используется;
+- если прямой доступ не работает и proxy настроен, бот переключается на него;
+- для SOCKS5 нужен установленный Python-пакет `PySocks`, он уже входит в `requirements.txt`.
+
+Переменные для `.env`:
+
+```env
+TELEGRAM_PROXY_SCHEME=socks5
+TELEGRAM_PROXY_HOST=127.0.0.1
+TELEGRAM_PROXY_PORT=1080
+TELEGRAM_PROXY_USERNAME=
+TELEGRAM_PROXY_PASSWORD=
+```

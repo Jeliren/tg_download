@@ -1,4 +1,5 @@
 import os
+from urllib.parse import quote
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -88,6 +89,11 @@ OPENAI_TRANSCRIPTION_MODEL = os.getenv(
     "OPENAI_TRANSCRIPTION_MODEL",
     "gpt-4o-mini-transcribe",
 ).strip() or "gpt-4o-mini-transcribe"
+TELEGRAM_PROXY_SCHEME = os.getenv("TELEGRAM_PROXY_SCHEME", "").strip().lower()
+TELEGRAM_PROXY_HOST = os.getenv("TELEGRAM_PROXY_HOST", "").strip()
+TELEGRAM_PROXY_PORT = _get_int("TELEGRAM_PROXY_PORT", 0, minimum=1)
+TELEGRAM_PROXY_USERNAME = os.getenv("TELEGRAM_PROXY_USERNAME", "").strip()
+TELEGRAM_PROXY_PASSWORD = os.getenv("TELEGRAM_PROXY_PASSWORD", "").strip()
 
 # Настройки логирования
 LOGGING_ENABLED = _get_bool("LOGGING_ENABLED", True)
@@ -116,6 +122,32 @@ def validate_config():
         raise RuntimeError("Ошибка конфигурации:\n- " + "\n- ".join(errors))
 
 
+def is_telegram_proxy_configured():
+    if not TELEGRAM_PROXY_SCHEME or not TELEGRAM_PROXY_HOST or not TELEGRAM_PROXY_PORT:
+        return False
+
+    if bool(TELEGRAM_PROXY_USERNAME) != bool(TELEGRAM_PROXY_PASSWORD):
+        return False
+
+    return True
+
+
+def get_telegram_proxy_url():
+    if not is_telegram_proxy_configured():
+        return ""
+
+    credentials = ""
+    if TELEGRAM_PROXY_USERNAME and TELEGRAM_PROXY_PASSWORD:
+        credentials = (
+            f"{quote(TELEGRAM_PROXY_USERNAME, safe='')}:{quote(TELEGRAM_PROXY_PASSWORD, safe='')}@"
+        )
+
+    return (
+        f"{TELEGRAM_PROXY_SCHEME}://"
+        f"{credentials}{TELEGRAM_PROXY_HOST}:{TELEGRAM_PROXY_PORT}"
+    )
+
+
 def get_runtime_warnings():
     warnings = []
 
@@ -124,6 +156,37 @@ def get_runtime_warnings():
             "Для серверного Instagram login должны быть заданы и INSTAGRAM_USERNAME, и "
             "INSTAGRAM_PASSWORD одновременно."
         )
+
+    any_proxy_values = any(
+        [
+            TELEGRAM_PROXY_SCHEME,
+            TELEGRAM_PROXY_HOST,
+            TELEGRAM_PROXY_PORT,
+            TELEGRAM_PROXY_USERNAME,
+            TELEGRAM_PROXY_PASSWORD,
+        ]
+    )
+    if any_proxy_values:
+        missing_required_proxy_fields = []
+
+        if not TELEGRAM_PROXY_SCHEME:
+            missing_required_proxy_fields.append("TELEGRAM_PROXY_SCHEME")
+        if not TELEGRAM_PROXY_HOST:
+            missing_required_proxy_fields.append("TELEGRAM_PROXY_HOST")
+        if not TELEGRAM_PROXY_PORT:
+            missing_required_proxy_fields.append("TELEGRAM_PROXY_PORT")
+
+        if missing_required_proxy_fields:
+            warnings.append(
+                "Для Telegram proxy должны быть заданы "
+                + ", ".join(missing_required_proxy_fields)
+                + "."
+            )
+        elif bool(TELEGRAM_PROXY_USERNAME) != bool(TELEGRAM_PROXY_PASSWORD):
+            warnings.append(
+                "Для Telegram proxy должны быть заданы и TELEGRAM_PROXY_USERNAME, и "
+                "TELEGRAM_PROXY_PASSWORD одновременно."
+            )
 
     return warnings
 
@@ -150,6 +213,11 @@ __all__ = [
     "OPENAI_API_KEY",
     "OPENAI_SUMMARY_MODEL",
     "OPENAI_TRANSCRIPTION_MODEL",
+    "TELEGRAM_PROXY_SCHEME",
+    "TELEGRAM_PROXY_HOST",
+    "TELEGRAM_PROXY_PORT",
+    "TELEGRAM_PROXY_USERNAME",
+    "TELEGRAM_PROXY_PASSWORD",
     "LOGGING_ENABLED",
     "LOG_LEVEL",
     "PERFORMANCE_LOGGING",
@@ -158,5 +226,7 @@ __all__ = [
     "MAX_CONCURRENT_DOWNLOADS",
     "MAX_DOWNLOAD_ATTEMPTS",
     "validate_config",
+    "is_telegram_proxy_configured",
+    "get_telegram_proxy_url",
     "get_runtime_warnings",
 ]

@@ -125,6 +125,33 @@ docker compose down
 
 - `BOT_TOKEN` — токен Telegram-бота.
 
+### Telegram proxy fallback
+
+Если бот не может достучаться до `api.telegram.org` напрямую, он может автоматически переключиться на proxy. Логика такая:
+
+- бот сначала проверяет прямой доступ к Telegram API;
+- если прямой доступ работает, proxy не используется;
+- если прямой доступ не работает и proxy настроен, бот переключается на него автоматически;
+- если прямой доступ не работает и proxy не настроен, бот продолжает стартовать, но polling будет падать с сетевой ошибкой.
+
+Поддерживаемые переменные:
+
+- `TELEGRAM_PROXY_SCHEME` — например, `socks5`;
+- `TELEGRAM_PROXY_HOST` — адрес proxy;
+- `TELEGRAM_PROXY_PORT` — порт proxy;
+- `TELEGRAM_PROXY_USERNAME` — логин, если нужен;
+- `TELEGRAM_PROXY_PASSWORD` — пароль, если нужен.
+
+Пример:
+
+```env
+TELEGRAM_PROXY_SCHEME=socks5
+TELEGRAM_PROXY_HOST=127.0.0.1
+TELEGRAM_PROXY_PORT=1080
+TELEGRAM_PROXY_USERNAME=
+TELEGRAM_PROXY_PASSWORD=
+```
+
 ### OpenAI-сценарии
 
 - `OPENAI_API_KEY` — нужен для саммари и расшифровки;
@@ -210,5 +237,6 @@ sudo systemctl enable --now tg_download_bot.service
 ## Практические замечания
 
 - не коммитьте `.env` и не публикуйте токены;
+- после добавления новых переменных из `.env.example` переносите их в локальный `.env` вручную, потому что `.env` не хранится в Git;
 - при запуске на сервере полезно периодически обновлять `yt-dlp` внутри `.venv`;
 - после обновления зависимостей имеет смысл прогнать проверки и сделать короткий smoke test на реальных YouTube и Instagram ссылках.

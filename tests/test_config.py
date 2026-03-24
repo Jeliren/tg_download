@@ -36,6 +36,28 @@ class ConfigValidationTests(unittest.TestCase):
             config._load_dotenv(dotenv_path)
             self.assertEqual(os.getenv("STAGE1_DOTENV_TEST"), "value")
 
+    def test_runtime_warnings_include_partial_telegram_proxy_config(self):
+        with patch.object(config, "TELEGRAM_PROXY_SCHEME", "socks5"), \
+             patch.object(config, "TELEGRAM_PROXY_HOST", "127.0.0.1"), \
+             patch.object(config, "TELEGRAM_PROXY_PORT", 0), \
+             patch.object(config, "TELEGRAM_PROXY_USERNAME", ""), \
+             patch.object(config, "TELEGRAM_PROXY_PASSWORD", ""):
+            warnings = config.get_runtime_warnings()
+
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("TELEGRAM_PROXY_PORT", warnings[0])
+
+    def test_get_telegram_proxy_url_uses_credentials_when_proxy_is_configured(self):
+        with patch.object(config, "TELEGRAM_PROXY_SCHEME", "socks5"), \
+             patch.object(config, "TELEGRAM_PROXY_HOST", "10.0.0.1"), \
+             patch.object(config, "TELEGRAM_PROXY_PORT", 1080), \
+             patch.object(config, "TELEGRAM_PROXY_USERNAME", "user"), \
+             patch.object(config, "TELEGRAM_PROXY_PASSWORD", "pass"):
+            self.assertEqual(
+                config.get_telegram_proxy_url(),
+                "socks5://user:pass@10.0.0.1:1080",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
