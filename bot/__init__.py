@@ -20,51 +20,33 @@ class ExceptionHandler:
         return True
 
 
-def _can_reach_telegram_directly(bot_token, connect_timeout, read_timeout):
-    import requests
-
-    probe_url = f"https://api.telegram.org/bot{bot_token}/getMe"
-
-    try:
-        with requests.Session() as session:
-            session.trust_env = False
-            session.get(probe_url, timeout=(connect_timeout, read_timeout))
-        return True
-    except requests.RequestException as exc:
-        log(f"Прямой доступ к Telegram API недоступен: {exc}", level="WARNING")
-        return False
-
-
 def _configure_telegram_transport(apihelper):
     from config import (
-        BOT_TOKEN,
-        CONNECT_TIMEOUT,
-        READ_TIMEOUT,
         TELEGRAM_PROXY_HOST,
         TELEGRAM_PROXY_PORT,
         TELEGRAM_PROXY_SCHEME,
         get_telegram_proxy_url,
+        is_proxy_enabled,
     )
 
     apihelper.proxy = {}
 
-    if _can_reach_telegram_directly(BOT_TOKEN, CONNECT_TIMEOUT, READ_TIMEOUT):
-        log("Прямой доступ к Telegram API доступен. Запуск без proxy.")
+    if not is_proxy_enabled():
+        log("Proxy отключен. Запуск без proxy.")
         return "direct"
 
     proxy_url = get_telegram_proxy_url()
     if not proxy_url:
         log(
-            "Прямой доступ к Telegram API недоступен, и Telegram proxy не настроен.",
+            "Proxy включен, но Telegram proxy не настроен. Запуск без proxy.",
             level="WARNING",
         )
         return "unavailable"
 
     apihelper.proxy = {"http": proxy_url, "https": proxy_url}
     log(
-        "Прямой доступ к Telegram API недоступен. "
-        f"Включен {TELEGRAM_PROXY_SCHEME} proxy {TELEGRAM_PROXY_HOST}:{TELEGRAM_PROXY_PORT}.",
-        level="WARNING",
+        f"Для Telegram включен {TELEGRAM_PROXY_SCHEME} proxy {TELEGRAM_PROXY_HOST}:{TELEGRAM_PROXY_PORT}.",
+        level="INFO",
     )
     return "proxy"
 
@@ -102,6 +84,5 @@ def create_bot():
 __all__ = [
     "create_bot",
     "ExceptionHandler",
-    "_can_reach_telegram_directly",
     "_configure_telegram_transport",
 ]
