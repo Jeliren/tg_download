@@ -89,7 +89,6 @@ OPENAI_TRANSCRIPTION_MODEL = os.getenv(
     "OPENAI_TRANSCRIPTION_MODEL",
     "gpt-4o-mini-transcribe",
 ).strip() or "gpt-4o-mini-transcribe"
-PROXY_ENABLED = _get_bool("PROXY_ENABLED", False)
 TELEGRAM_PROXY_SCHEME = os.getenv("TELEGRAM_PROXY_SCHEME", "").strip().lower()
 TELEGRAM_PROXY_HOST = os.getenv("TELEGRAM_PROXY_HOST", "").strip()
 TELEGRAM_PROXY_PORT = _get_int("TELEGRAM_PROXY_PORT", 0, minimum=1)
@@ -162,9 +161,6 @@ def is_telegram_proxy_configured():
 
 
 def get_telegram_proxy_url():
-    if not is_proxy_enabled():
-        return ""
-
     return _build_proxy_url(
         TELEGRAM_PROXY_SCHEME,
         TELEGRAM_PROXY_HOST,
@@ -185,9 +181,6 @@ def is_outbound_proxy_configured():
 
 
 def get_outbound_proxy_url():
-    if not is_proxy_enabled():
-        return ""
-
     outbound_proxy_url = _build_proxy_url(
         OUTBOUND_PROXY_SCHEME,
         OUTBOUND_PROXY_HOST,
@@ -210,26 +203,6 @@ def get_outbound_requests_proxies():
         "http": proxy_url,
         "https": proxy_url,
     }
-
-
-def is_proxy_enabled():
-    if PROXY_ENABLED:
-        return True
-
-    return any(
-        [
-            TELEGRAM_PROXY_SCHEME,
-            TELEGRAM_PROXY_HOST,
-            TELEGRAM_PROXY_PORT,
-            TELEGRAM_PROXY_USERNAME,
-            TELEGRAM_PROXY_PASSWORD,
-            OUTBOUND_PROXY_SCHEME,
-            OUTBOUND_PROXY_HOST,
-            OUTBOUND_PROXY_PORT,
-            OUTBOUND_PROXY_USERNAME,
-            OUTBOUND_PROXY_PASSWORD,
-        ]
-    )
 
 
 def get_runtime_warnings():
@@ -321,7 +294,6 @@ __all__ = [
     "OUTBOUND_PROXY_PORT",
     "OUTBOUND_PROXY_USERNAME",
     "OUTBOUND_PROXY_PASSWORD",
-    "PROXY_ENABLED",
     "LOGGING_ENABLED",
     "LOG_LEVEL",
     "PERFORMANCE_LOGGING",
@@ -330,7 +302,6 @@ __all__ = [
     "MAX_CONCURRENT_DOWNLOADS",
     "MAX_DOWNLOAD_ATTEMPTS",
     "validate_config",
-    "is_proxy_enabled",
     "is_telegram_proxy_configured",
     "get_telegram_proxy_url",
     "is_outbound_proxy_configured",

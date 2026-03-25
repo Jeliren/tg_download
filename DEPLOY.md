@@ -112,25 +112,16 @@ git pull
 
 ## Proxy для всего проекта
 
-Проект умеет использовать proxy для Telegram API и всего остального внешнего трафика:
+Проект умеет автоматически переключаться на proxy для Telegram API и использовать proxy для остального внешнего трафика:
 
-- Telegram;
-- YouTube / `yt-dlp`;
-- Instagram;
-- OpenAI.
-
-Для SOCKS5 нужен установленный Python-пакет `PySocks`, он уже входит в `requirements.txt`.
-
-Включение proxy:
-
-```env
-PROXY_ENABLED=true
-```
+- сначала бот пробует достучаться до `api.telegram.org` напрямую;
+- если прямой доступ работает, proxy не используется;
+- если прямой доступ не работает и proxy настроен, бот переключается на него;
+- для SOCKS5 нужен установленный Python-пакет `PySocks`, он уже входит в `requirements.txt`.
 
 Базовые переменные для `.env`:
 
 ```env
-PROXY_ENABLED=true
 TELEGRAM_PROXY_SCHEME=socks5
 TELEGRAM_PROXY_HOST=127.0.0.1
 TELEGRAM_PROXY_PORT=1080

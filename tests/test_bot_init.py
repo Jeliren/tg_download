@@ -41,7 +41,7 @@ class BotInitializationTests(unittest.TestCase):
              patch("config.CONNECT_TIMEOUT", 3), \
              patch("config.READ_TIMEOUT", 5), \
              patch("services.converter_service.check_ffmpeg", return_value=True), \
-             patch("config.is_proxy_enabled", return_value=False), \
+             patch("bot._can_reach_telegram_directly", return_value=True), \
              patch("bot.log"):
             created_bot = bot.create_bot()
 
@@ -50,7 +50,7 @@ class BotInitializationTests(unittest.TestCase):
         self.telebot_module.TeleBot.assert_called_once_with("123:token")
         self.handlers_module.register_handlers.assert_called_once_with(self.bot_instance)
 
-    def test_create_bot_switches_to_proxy_when_proxy_is_enabled(self):
+    def test_create_bot_switches_to_proxy_after_failed_direct_probe(self):
         with patch("config.validate_config"), \
              patch("config.BOT_TOKEN", "123:token"), \
              patch("config.CONNECT_TIMEOUT", 3), \
@@ -58,9 +58,9 @@ class BotInitializationTests(unittest.TestCase):
              patch("config.TELEGRAM_PROXY_SCHEME", "socks5"), \
              patch("config.TELEGRAM_PROXY_HOST", "185.242.107.204"), \
              patch("config.TELEGRAM_PROXY_PORT", 52398), \
-             patch("config.is_proxy_enabled", return_value=True), \
              patch("config.get_telegram_proxy_url", return_value="socks5://user:pass@185.242.107.204:52398"), \
              patch("services.converter_service.check_ffmpeg", return_value=True), \
+             patch("bot._can_reach_telegram_directly", return_value=False), \
              patch("bot.log"):
             bot.create_bot()
 
