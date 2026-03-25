@@ -125,40 +125,22 @@ docker compose down
 
 - `BOT_TOKEN` — токен Telegram-бота.
 
-### Proxy для всего проекта
+### Telegram proxy fallback
 
-Проект умеет использовать proxy не только для Telegram, но и для остального внешнего трафика:
-
-- Telegram Bot API;
-- YouTube и `yt-dlp`;
-- Instagram public fallback;
-- Instagram service account;
-- OpenAI API.
-
-Логика такая:
+Если бот не может достучаться до `api.telegram.org` напрямую, он может автоматически переключиться на proxy. Логика такая:
 
 - бот сначала проверяет прямой доступ к Telegram API;
 - если прямой доступ работает, proxy не используется;
 - если прямой доступ не работает и proxy настроен, бот переключается на него автоматически;
 - если прямой доступ не работает и proxy не настроен, бот продолжает стартовать, но polling будет падать с сетевой ошибкой.
 
-Для всего проекта можно использовать два варианта:
+Поддерживаемые переменные:
 
 - `TELEGRAM_PROXY_SCHEME` — например, `socks5`;
 - `TELEGRAM_PROXY_HOST` — адрес proxy;
 - `TELEGRAM_PROXY_PORT` — порт proxy;
 - `TELEGRAM_PROXY_USERNAME` — логин, если нужен;
 - `TELEGRAM_PROXY_PASSWORD` — пароль, если нужен.
-
-По умолчанию эти же значения используются и для остального внешнего трафика.
-
-Если нужно задать отдельный proxy именно для YouTube / Instagram / OpenAI, используйте optional override:
-
-- `OUTBOUND_PROXY_SCHEME`
-- `OUTBOUND_PROXY_HOST`
-- `OUTBOUND_PROXY_PORT`
-- `OUTBOUND_PROXY_USERNAME`
-- `OUTBOUND_PROXY_PASSWORD`
 
 Пример:
 
@@ -169,8 +151,6 @@ TELEGRAM_PROXY_PORT=1080
 TELEGRAM_PROXY_USERNAME=
 TELEGRAM_PROXY_PASSWORD=
 ```
-
-Если `OUTBOUND_PROXY_*` пустые, проект автоматически переиспользует `TELEGRAM_PROXY_*` для всего внешнего трафика.
 
 ### OpenAI-сценарии
 

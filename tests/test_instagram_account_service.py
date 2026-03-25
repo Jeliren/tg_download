@@ -112,30 +112,17 @@ class InstagramAccountServiceTests(unittest.TestCase):
 
     def test_build_client_uses_external_timeouts_instead_of_one_second_default(self):
         fake_client = SimpleNamespace(
-            private=SimpleNamespace(request=lambda *args, **kwargs: None, proxies={}),
-            public=SimpleNamespace(request=lambda *args, **kwargs: None, proxies={}),
-            set_proxy=mock.Mock(),
+            private=SimpleNamespace(request=lambda *args, **kwargs: None),
+            public=SimpleNamespace(request=lambda *args, **kwargs: None),
         )
 
-        with mock.patch.object(instagram_account_service, "Client", return_value=fake_client), \
-             mock.patch.object(
-                 instagram_account_service,
-                 "get_outbound_proxy_url",
-                 return_value="socks5://127.0.0.1:1080",
-             ), \
-             mock.patch.object(
-                 instagram_account_service,
-                 "get_outbound_requests_proxies",
-                 return_value={"http": "socks5://127.0.0.1:1080", "https": "socks5://127.0.0.1:1080"},
-             ):
+        with mock.patch.object(instagram_account_service, "Client", return_value=fake_client):
             client = instagram_account_service._build_client()
 
         self.assertEqual(
             client.request_timeout,
             instagram_account_service.EXTERNAL_CONNECT_TIMEOUT + instagram_account_service.EXTERNAL_READ_TIMEOUT,
         )
-        fake_client.set_proxy.assert_called_once_with("socks5://127.0.0.1:1080")
-        self.assertEqual(fake_client.private.proxies["https"], "socks5://127.0.0.1:1080")
 
 
 if __name__ == "__main__":

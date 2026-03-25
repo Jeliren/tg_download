@@ -59,12 +59,6 @@ class MusicServiceTests(unittest.TestCase):
             with self.assertRaises(music_service.MusicSearchError):
                 music_service.search_music("artist")
 
-    def test_base_search_options_include_proxy_when_configured(self):
-        with mock.patch("services.music_service.get_outbound_proxy_url", return_value="socks5://127.0.0.1:1080"):
-            options = music_service._base_search_options()
-
-        self.assertEqual(options["proxy"], "socks5://127.0.0.1:1080")
-
 
 if __name__ == "__main__":
     unittest.main()

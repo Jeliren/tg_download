@@ -171,12 +171,6 @@ class YouTubeServiceHelpersTests(unittest.TestCase):
             ],
         )
 
-    def test_base_ydl_options_include_proxy_when_configured(self):
-        with mock.patch("services.youtube_service.get_outbound_proxy_url", return_value="socks5://127.0.0.1:1080"):
-            options = youtube_service._base_ydl_options()
-
-        self.assertEqual(options["proxy"], "socks5://127.0.0.1:1080")
-
 
 class YouTubeServiceRuntimeTests(unittest.TestCase):
     def test_download_youtube_video_reoffers_lower_quality_when_selected_quality_is_too_large(self):

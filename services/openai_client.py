@@ -11,7 +11,6 @@ import time
 
 import requests
 
-from config import get_outbound_requests_proxies
 from utils.logging_utils import log_event
 
 DEFAULT_OPENAI_TIMEOUT = (30, 600)
@@ -115,7 +114,6 @@ def post_openai_json(endpoint, payload, *, api_key, timeout=DEFAULT_OPENAI_TIMEO
             headers=headers,
             json=payload,
             timeout=timeout,
-            proxies=get_outbound_requests_proxies() or None,
         ),
         context=context,
     )
@@ -132,7 +130,6 @@ def post_openai_multipart(endpoint, *, api_key, data, files, timeout=DEFAULT_OPE
             data=data,
             files=files,
             timeout=timeout,
-            proxies=get_outbound_requests_proxies() or None,
         ),
         context=context,
     )

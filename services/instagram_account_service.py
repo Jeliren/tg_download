@@ -26,8 +26,6 @@ from config import (
     INSTAGRAM_ACCOUNT_SESSION_FILE,
     INSTAGRAM_PASSWORD,
     INSTAGRAM_USERNAME,
-    get_outbound_proxy_url,
-    get_outbound_requests_proxies,
 )
 from core.cache import ExpiringStore
 from utils.logging_utils import log
@@ -91,22 +89,9 @@ def _build_client():
     client = Client()
     client.request_timeout = EXTERNAL_CONNECT_TIMEOUT + EXTERNAL_READ_TIMEOUT
     default_timeout = (EXTERNAL_CONNECT_TIMEOUT, EXTERNAL_READ_TIMEOUT)
-    proxies = get_outbound_requests_proxies()
-    proxy_url = get_outbound_proxy_url()
-
-    set_proxy = getattr(client, "set_proxy", None)
-    if callable(set_proxy) and proxy_url:
-        set_proxy(proxy_url)
-
-    if hasattr(client.private, "proxies") and proxies:
-        client.private.proxies.update(proxies)
-    if hasattr(client.public, "proxies") and proxies:
-        client.public.proxies.update(proxies)
 
     def request_with_timeout(session, method, url, **kwargs):
         kwargs.setdefault("timeout", default_timeout)
-        if proxies:
-            kwargs.setdefault("proxies", proxies)
         return session.__class__.request(session, method, url, **kwargs)
 
     client.private.request = MethodType(request_with_timeout, client.private)

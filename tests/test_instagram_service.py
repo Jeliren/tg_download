@@ -33,12 +33,6 @@ class InstagramServiceHelpersTests(unittest.TestCase):
         self.assertIn("bestvideo[ext=mp4][vcodec*=avc1]", options["format"])
         self.assertEqual(options["outtmpl"], "/tmp/ig-test/instagram_video.%(ext)s")
 
-    def test_instagram_ytdlp_options_include_proxy_when_configured(self):
-        with mock.patch("services.instagram_service.get_outbound_proxy_url", return_value="socks5://127.0.0.1:1080"):
-            options = instagram_service._build_yt_dlp_options("video", temp_dir="/tmp/ig-test", download=True)
-
-        self.assertEqual(options["proxy"], "socks5://127.0.0.1:1080")
-
     def test_auth_options_use_no_auth_first_and_optional_cookiefile(self):
         with mock.patch.object(instagram_service, "INSTAGRAM_COOKIES_FILE", "/tmp/ig-cookies.txt"), \
              mock.patch("services.instagram_service.os.path.exists", return_value=True):

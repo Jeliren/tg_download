@@ -58,22 +58,6 @@ class ConfigValidationTests(unittest.TestCase):
                 "socks5://user:pass@10.0.0.1:1080",
             )
 
-    def test_get_outbound_proxy_url_falls_back_to_telegram_proxy(self):
-        with patch.object(config, "OUTBOUND_PROXY_SCHEME", ""), \
-             patch.object(config, "OUTBOUND_PROXY_HOST", ""), \
-             patch.object(config, "OUTBOUND_PROXY_PORT", 0), \
-             patch.object(config, "OUTBOUND_PROXY_USERNAME", ""), \
-             patch.object(config, "OUTBOUND_PROXY_PASSWORD", ""), \
-             patch.object(config, "TELEGRAM_PROXY_SCHEME", "socks5"), \
-             patch.object(config, "TELEGRAM_PROXY_HOST", "10.0.0.2"), \
-             patch.object(config, "TELEGRAM_PROXY_PORT", 2080), \
-             patch.object(config, "TELEGRAM_PROXY_USERNAME", "user"), \
-             patch.object(config, "TELEGRAM_PROXY_PASSWORD", "pass"):
-            self.assertEqual(
-                config.get_outbound_proxy_url(),
-                "socks5://user:pass@10.0.0.2:2080",
-            )
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -23,7 +23,6 @@ from config import (
     MAX_FILE_SIZE,
     OPENAI_API_KEY,
     TEMP_DIR,
-    get_outbound_proxy_url,
 )
 from services.openai_client import OpenAITemporaryError
 from services.summary_service import (
@@ -155,15 +154,11 @@ def _split_text_chunks(text, chunk_size=SUMMARY_CHUNK_SIZE):
 
 
 def _base_ydl_options():
-    options = {
+    return {
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
     }
-    proxy_url = get_outbound_proxy_url()
-    if proxy_url:
-        options["proxy"] = proxy_url
-    return options
 
 
 def _parse_vtt_transcript(vtt_text):
