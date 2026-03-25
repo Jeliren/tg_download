@@ -94,6 +94,11 @@ TELEGRAM_PROXY_HOST = os.getenv("TELEGRAM_PROXY_HOST", "").strip()
 TELEGRAM_PROXY_PORT = _get_int("TELEGRAM_PROXY_PORT", 0, minimum=1)
 TELEGRAM_PROXY_USERNAME = os.getenv("TELEGRAM_PROXY_USERNAME", "").strip()
 TELEGRAM_PROXY_PASSWORD = os.getenv("TELEGRAM_PROXY_PASSWORD", "").strip()
+OUTBOUND_PROXY_SCHEME = os.getenv("OUTBOUND_PROXY_SCHEME", "").strip().lower()
+OUTBOUND_PROXY_HOST = os.getenv("OUTBOUND_PROXY_HOST", "").strip()
+OUTBOUND_PROXY_PORT = _get_int("OUTBOUND_PROXY_PORT", 0, minimum=1)
+OUTBOUND_PROXY_USERNAME = os.getenv("OUTBOUND_PROXY_USERNAME", "").strip()
+OUTBOUND_PROXY_PASSWORD = os.getenv("OUTBOUND_PROXY_PASSWORD", "").strip()
 
 # Настройки логирования
 LOGGING_ENABLED = _get_bool("LOGGING_ENABLED", True)
@@ -122,30 +127,82 @@ def validate_config():
         raise RuntimeError("Ошибка конфигурации:\n- " + "\n- ".join(errors))
 
 
-def is_telegram_proxy_configured():
-    if not TELEGRAM_PROXY_SCHEME or not TELEGRAM_PROXY_HOST or not TELEGRAM_PROXY_PORT:
+def _is_proxy_configured(scheme, host, port, username, password):
+    if not scheme or not host or not port:
         return False
 
-    if bool(TELEGRAM_PROXY_USERNAME) != bool(TELEGRAM_PROXY_PASSWORD):
+    if bool(username) != bool(password):
         return False
 
     return True
 
 
-def get_telegram_proxy_url():
-    if not is_telegram_proxy_configured():
+def _build_proxy_url(scheme, host, port, username, password):
+    if not _is_proxy_configured(scheme, host, port, username, password):
         return ""
 
     credentials = ""
-    if TELEGRAM_PROXY_USERNAME and TELEGRAM_PROXY_PASSWORD:
+    if username and password:
         credentials = (
-            f"{quote(TELEGRAM_PROXY_USERNAME, safe='')}:{quote(TELEGRAM_PROXY_PASSWORD, safe='')}@"
+            f"{quote(username, safe='')}:{quote(password, safe='')}@"
         )
 
-    return (
-        f"{TELEGRAM_PROXY_SCHEME}://"
-        f"{credentials}{TELEGRAM_PROXY_HOST}:{TELEGRAM_PROXY_PORT}"
+    return f"{scheme}://{credentials}{host}:{port}"
+
+
+def is_telegram_proxy_configured():
+    return _is_proxy_configured(
+        TELEGRAM_PROXY_SCHEME,
+        TELEGRAM_PROXY_HOST,
+        TELEGRAM_PROXY_PORT,
+        TELEGRAM_PROXY_USERNAME,
+        TELEGRAM_PROXY_PASSWORD,
     )
+
+
+def get_telegram_proxy_url():
+    return _build_proxy_url(
+        TELEGRAM_PROXY_SCHEME,
+        TELEGRAM_PROXY_HOST,
+        TELEGRAM_PROXY_PORT,
+        TELEGRAM_PROXY_USERNAME,
+        TELEGRAM_PROXY_PASSWORD,
+    )
+
+
+def is_outbound_proxy_configured():
+    return _is_proxy_configured(
+        OUTBOUND_PROXY_SCHEME,
+        OUTBOUND_PROXY_HOST,
+        OUTBOUND_PROXY_PORT,
+        OUTBOUND_PROXY_USERNAME,
+        OUTBOUND_PROXY_PASSWORD,
+    )
+
+
+def get_outbound_proxy_url():
+    outbound_proxy_url = _build_proxy_url(
+        OUTBOUND_PROXY_SCHEME,
+        OUTBOUND_PROXY_HOST,
+        OUTBOUND_PROXY_PORT,
+        OUTBOUND_PROXY_USERNAME,
+        OUTBOUND_PROXY_PASSWORD,
+    )
+    if outbound_proxy_url:
+        return outbound_proxy_url
+
+    return get_telegram_proxy_url()
+
+
+def get_outbound_requests_proxies():
+    proxy_url = get_outbound_proxy_url()
+    if not proxy_url:
+        return {}
+
+    return {
+        "http": proxy_url,
+        "https": proxy_url,
+    }
 
 
 def get_runtime_warnings():
@@ -157,35 +214,49 @@ def get_runtime_warnings():
             "INSTAGRAM_PASSWORD одновременно."
         )
 
-    any_proxy_values = any(
-        [
+    proxy_configs = [
+        (
+            "Telegram proxy",
+            "TELEGRAM_PROXY",
             TELEGRAM_PROXY_SCHEME,
             TELEGRAM_PROXY_HOST,
             TELEGRAM_PROXY_PORT,
             TELEGRAM_PROXY_USERNAME,
             TELEGRAM_PROXY_PASSWORD,
-        ]
-    )
-    if any_proxy_values:
-        missing_required_proxy_fields = []
+        ),
+        (
+            "outbound proxy",
+            "OUTBOUND_PROXY",
+            OUTBOUND_PROXY_SCHEME,
+            OUTBOUND_PROXY_HOST,
+            OUTBOUND_PROXY_PORT,
+            OUTBOUND_PROXY_USERNAME,
+            OUTBOUND_PROXY_PASSWORD,
+        ),
+    ]
 
-        if not TELEGRAM_PROXY_SCHEME:
-            missing_required_proxy_fields.append("TELEGRAM_PROXY_SCHEME")
-        if not TELEGRAM_PROXY_HOST:
-            missing_required_proxy_fields.append("TELEGRAM_PROXY_HOST")
-        if not TELEGRAM_PROXY_PORT:
-            missing_required_proxy_fields.append("TELEGRAM_PROXY_PORT")
+    for label, prefix, scheme, host, port, username, password in proxy_configs:
+        if not any([scheme, host, port, username, password]):
+            continue
+
+        missing_required_proxy_fields = []
+        if not scheme:
+            missing_required_proxy_fields.append(f"{prefix}_SCHEME")
+        if not host:
+            missing_required_proxy_fields.append(f"{prefix}_HOST")
+        if not port:
+            missing_required_proxy_fields.append(f"{prefix}_PORT")
 
         if missing_required_proxy_fields:
             warnings.append(
-                "Для Telegram proxy должны быть заданы "
+                f"Для {label} должны быть заданы "
                 + ", ".join(missing_required_proxy_fields)
                 + "."
             )
-        elif bool(TELEGRAM_PROXY_USERNAME) != bool(TELEGRAM_PROXY_PASSWORD):
+        elif bool(username) != bool(password):
             warnings.append(
-                "Для Telegram proxy должны быть заданы и TELEGRAM_PROXY_USERNAME, и "
-                "TELEGRAM_PROXY_PASSWORD одновременно."
+                f"Для {label} должны быть заданы и {prefix}_USERNAME, и "
+                f"{prefix}_PASSWORD одновременно."
             )
 
     return warnings
@@ -218,6 +289,11 @@ __all__ = [
     "TELEGRAM_PROXY_PORT",
     "TELEGRAM_PROXY_USERNAME",
     "TELEGRAM_PROXY_PASSWORD",
+    "OUTBOUND_PROXY_SCHEME",
+    "OUTBOUND_PROXY_HOST",
+    "OUTBOUND_PROXY_PORT",
+    "OUTBOUND_PROXY_USERNAME",
+    "OUTBOUND_PROXY_PASSWORD",
     "LOGGING_ENABLED",
     "LOG_LEVEL",
     "PERFORMANCE_LOGGING",
@@ -228,5 +304,8 @@ __all__ = [
     "validate_config",
     "is_telegram_proxy_configured",
     "get_telegram_proxy_url",
+    "is_outbound_proxy_configured",
+    "get_outbound_proxy_url",
+    "get_outbound_requests_proxies",
     "get_runtime_warnings",
 ]

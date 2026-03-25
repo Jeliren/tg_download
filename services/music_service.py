@@ -7,6 +7,7 @@ from typing import Any
 
 import yt_dlp
 
+from config import get_outbound_proxy_url
 from utils.logging_utils import log
 
 MAX_MUSIC_RESULTS = 15
@@ -41,13 +42,17 @@ class MusicSearchError(RuntimeError):
 
 
 def _base_search_options() -> dict[str, Any]:
-    return {
+    options = {
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
         "extract_flat": "in_playlist",
         "skip_download": True,
     }
+    proxy_url = get_outbound_proxy_url()
+    if proxy_url:
+        options["proxy"] = proxy_url
+    return options
 
 
 def _clean_text(value: Any) -> str:

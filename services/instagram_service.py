@@ -32,6 +32,8 @@ from config import (
     OPENAI_API_KEY,
     RETRY_DELAY,
     TEMP_DIR,
+    get_outbound_proxy_url,
+    get_outbound_requests_proxies,
 )
 from services.instagram_account_service import (
     InstagramAccountError,
@@ -189,6 +191,10 @@ def _create_session():
     session.mount("https://", adapter)
     session.mount("http://", adapter)
     session.headers.update(_random_headers())
+    session.trust_env = False
+    proxies = get_outbound_requests_proxies()
+    if proxies:
+        session.proxies.update(proxies)
     return session
 
 
@@ -215,6 +221,9 @@ def _build_yt_dlp_options(format_type, temp_dir=None, download=True, auth_option
         "extractor_retries": 2,
         "http_headers": _random_headers(),
     }
+    proxy_url = get_outbound_proxy_url()
+    if proxy_url:
+        options["proxy"] = proxy_url
     if download and temp_dir:
         options["outtmpl"] = os.path.join(temp_dir, f"instagram_{format_type}.%(ext)s")
 
