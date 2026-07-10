@@ -10,7 +10,6 @@ import subprocess
 
 import requests
 
-from bot.texts import READY_FOR_MORE_TEXT
 from config import OPENAI_API_KEY
 from services.converter_service import check_ffmpeg
 from services.openai_client import OpenAITemporaryError
@@ -46,7 +45,6 @@ from utils.logging_utils import log_event, measure_time, new_operation_id, perf_
 def _send_summary_result(bot, chat_id, summary, status_message_id):
     _finalize_status_message(bot, chat_id, status_message_id, "✅ Саммари готово.")
     bot.send_message(chat_id, f"🧠 Саммари загруженного видео\n\n{summary}")
-    bot.send_message(chat_id, READY_FOR_MORE_TEXT)
 
 
 @perf_monitor
@@ -117,7 +115,6 @@ def transcribe_uploaded_video(bot, chat_id, user_id, video_file_id, message_id=N
         send_text_chunks(bot, chat_id, transcript_text)
         _finalize_status_message(bot, chat_id, status_message_id, "✅ Расшифровка видео готова.")
         log_event("uploaded_video_transcription_finished", op=op_id, chat_id=chat_id, user_id=user_id)
-        bot.send_message(chat_id, READY_FOR_MORE_TEXT)
     except UploadedMediaNoAudioError:
         _finalize_status_message(bot, chat_id, status_message_id, "⚠️ В видео нет аудио.")
         bot.send_message(chat_id, "⚠️ В этом видео нет аудиодорожки, поэтому расшифровка недоступна.")

@@ -45,12 +45,6 @@ class UploadedVideoServiceRuntimeTests(unittest.TestCase):
             )
 
         send_text_chunks.assert_called_once_with(bot, 42, "текст видео")
-        self.assertTrue(
-            any(
-                call.args == (42, uploaded_video_service.READY_FOR_MORE_TEXT)
-                for call in bot.send_message.call_args_list
-            )
-        )
         stop_event.set.assert_called_once()
 
     def test_summarize_uploaded_video_sends_summary_text(self):
@@ -102,12 +96,6 @@ class UploadedVideoServiceRuntimeTests(unittest.TestCase):
                 "готовое саммари" in call.args[1]
                 for call in bot.send_message.call_args_list
                 if len(call.args) > 1
-            )
-        )
-        self.assertTrue(
-            any(
-                call.args == (42, uploaded_video_service.READY_FOR_MORE_TEXT)
-                for call in bot.send_message.call_args_list
             )
         )
         stop_event.set.assert_called_once()

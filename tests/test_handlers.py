@@ -7,6 +7,30 @@ from bot.texts import INVALID_UPLOADED_MEDIA_TEXT, MUSIC_PROMPT_TEXT, WAIT_PREVI
 
 
 class HandlerCoordinatorTests(unittest.TestCase):
+    def test_youtube_url_shows_actions_without_a_racing_precheck(self):
+        bot = mock.Mock()
+        coordinator = BotHandlerCoordinator(bot)
+        message = SimpleNamespace(chat=SimpleNamespace(id=55), message_id=320)
+        status_message = SimpleNamespace(chat=SimpleNamespace(id=55), message_id=500)
+
+        bot.reply_to.return_value = status_message
+        with mock.patch(
+            "bot.handlers.callback_registry.register_action_url",
+            return_value="url123",
+        ), mock.patch("bot.handlers.create_inline_markup", return_value="markup"), mock.patch.object(
+            coordinator,
+            "_submit_background_task",
+        ) as submit_task:
+            coordinator._handle_youtube_url(message, "https://youtu.be/test")
+
+        submit_task.assert_not_called()
+        bot.edit_message_text.assert_called_once_with(
+            text="✅ Выберите действие:",
+            chat_id=55,
+            message_id=500,
+            reply_markup="markup",
+        )
+
     def test_handle_video_shows_action_buttons_instead_of_starting_conversion(self):
         bot = mock.Mock()
         coordinator = BotHandlerCoordinator(bot)

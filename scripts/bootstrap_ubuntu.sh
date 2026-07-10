@@ -29,9 +29,11 @@ if [ "$INSTALL_DEV" = "1" ]; then
 fi
 
 if [ ! -f "$PROJECT_DIR/.env" ]; then
-  echo "[tg_download] Creating .env from .env.example..."
-  cp "$PROJECT_DIR/.env.example" "$PROJECT_DIR/.env"
+    echo "[tg_download] Creating .env from .env.example..."
+    cp "$PROJECT_DIR/.env.example" "$PROJECT_DIR/.env"
 fi
+
+chmod 600 "$PROJECT_DIR/.env"
 
 cat <<EOF
 

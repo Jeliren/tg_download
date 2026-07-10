@@ -21,6 +21,12 @@ cp .env.example .env
 ./.venv/bin/python main.py
 ```
 
+Ограничьте доступ к секретам:
+
+```bash
+chmod 600 .env .instagram-account-session.json .instagram-session-cookies.txt 2>/dev/null || true
+```
+
 Для фонового запуска можно использовать systemd unit из `deploy/tg_download_bot.service`.
 
 ### Windows
@@ -64,8 +70,12 @@ cp .env.example .env
 Заполните `.env`, затем выполните:
 
 ```bash
+mkdir -p data
+chmod 700 data
 docker compose up -d --build
 ```
+
+Docker Compose сохраняет Instagram session file в `./data/`, поэтому пересоздание контейнера не вызывает новый login.
 
 Остановить контейнер:
 
@@ -77,6 +87,36 @@ docker compose down
 
 ```bash
 docker compose logs -f
+```
+
+## Как получить актуальные логи на сервере
+
+Сначала определите, чем запущен бот:
+
+```bash
+sudo systemctl status tg_download_bot --no-pager
+docker compose ps
+```
+
+Для systemd:
+
+```bash
+sudo journalctl -u tg_download_bot -n 300 --no-pager
+sudo journalctl -u tg_download_bot --since "24 hours ago" --no-pager
+```
+
+Для Docker Compose:
+
+```bash
+docker compose logs --tail=300 bot
+docker compose logs --since=24h bot
+```
+
+Проверить версию развёрнутого кода и `yt-dlp`, не раскрывая секреты:
+
+```bash
+git log -1 --oneline
+./.venv/bin/python -c "import yt_dlp; print(yt_dlp.version.__version__)"
 ```
 
 ## Что хранить в GitHub, а что нет
@@ -108,3 +148,24 @@ git pull
 
 - без Docker: при изменении зависимостей снова выполнить `pip install -r requirements.txt`;
 - с Docker: выполнить `docker compose up -d --build`.
+
+## Автоматический production deploy через GitHub Actions
+
+Workflow `.github/workflows/check.yml` после каждого push в `main`:
+
+1. устанавливает зависимости и запускает линтер, тесты и compile-check;
+2. передаёт только код в `/opt/tg_download` через SSH/rsync;
+3. обновляет production-зависимости;
+4. перезапускает `tg_download_bot.service` и проверяет его состояние.
+
+Файлы `.env`, `.env.*`, `data/`, `.venv/`, `logs/` и `temp/` исключены из rsync и не удаляются при деплое.
+
+В GitHub Environment `production` должны быть заданы secrets:
+
+- `PROD_HOST` — IP или hostname сервера;
+- `PROD_PORT` — SSH-порт, обычно `22`;
+- `PROD_USER` — отдельный deploy-пользователь `tgdownload`;
+- `PROD_SSH_PRIVATE_KEY` — приватный ключ этого deploy-пользователя;
+- `PROD_KNOWN_HOSTS` — закреплённая строка host key сервера для проверки подлинности.
+
+Deploy-пользователю нужен доступ на запись в `/opt/tg_download` и ограниченный passwordless sudo только для команд перезапуска и проверки `tg_download_bot.service`. Root-пароль в GitHub хранить не нужно.

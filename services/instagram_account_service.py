@@ -9,14 +9,18 @@ from urllib.parse import urlparse
 
 from instagrapi import Client
 from instagrapi.exceptions import (
+    BadCredentials,
     BadPassword,
     ChallengeRequired,
     ChallengeSelfieCaptcha,
     ChallengeUnknownStep,
     ClientForbiddenError,
     ClientLoginRequired,
+    ClientThrottledError,
     LoginRequired,
     PleaseWaitFewMinutes,
+    ProxyAddressIsBlocked,
+    RateLimitError,
     TwoFactorRequired,
 )
 
@@ -25,6 +29,7 @@ from config import (
     EXTERNAL_READ_TIMEOUT,
     INSTAGRAM_ACCOUNT_SESSION_FILE,
     INSTAGRAM_PASSWORD,
+    INSTAGRAM_PROXY,
     INSTAGRAM_USERNAME,
 )
 from core.cache import ExpiringStore
@@ -77,8 +82,10 @@ class InstagramAccountError(RuntimeError):
 
 
 _CLIENT_LOCK = threading.Lock()
+_CLIENT_ACTION_LOCK = threading.RLock()
 _CLIENT = None
 _MEDIA_CACHE = ExpiringStore(ttl=60 * 10)
+_ACCOUNT_FAILURE_CACHE = ExpiringStore(ttl=60 * 15)
 
 
 def instagram_account_is_configured():
@@ -87,6 +94,8 @@ def instagram_account_is_configured():
 
 def _build_client():
     client = Client()
+    if INSTAGRAM_PROXY:
+        client.set_proxy(INSTAGRAM_PROXY)
     client.request_timeout = EXTERNAL_CONNECT_TIMEOUT + EXTERNAL_READ_TIMEOUT
     default_timeout = (EXTERNAL_CONNECT_TIMEOUT, EXTERNAL_READ_TIMEOUT)
 
@@ -130,23 +139,27 @@ def _ensure_settings_parent_dir():
 
 
 def _classify_account_exception(error):
-    if isinstance(error, BadPassword):
+    text = str(error).lower()
+    if "change your ip" in text or ("ip address" in text and "blacklist" in text):
+        return "ip_blocked"
+    if isinstance(error, (BadPassword, BadCredentials)):
         return "bad_credentials"
     if isinstance(error, TwoFactorRequired):
         return "two_factor_required"
     if isinstance(error, CHALLENGE_EXCEPTIONS):
         return "challenge_required"
-    if isinstance(error, PleaseWaitFewMinutes):
+    if isinstance(error, (PleaseWaitFewMinutes, RateLimitError, ClientThrottledError)):
         return "rate_limited"
+    if isinstance(error, ProxyAddressIsBlocked):
+        return "network"
     if isinstance(error, (ClientForbiddenError, *LOGIN_EXCEPTIONS)):
         return "login_required"
 
-    text = str(error).lower()
     if "challenge" in text:
         return "challenge_required"
     if "two-factor" in text or "two factor" in text:
         return "two_factor_required"
-    if "wait a few minutes" in text or "please wait" in text:
+    if "wait a few minutes" in text or "please wait" in text or "rate limit" in text:
         return "rate_limited"
     if "login required" in text:
         return "login_required"
@@ -155,7 +168,12 @@ def _classify_account_exception(error):
 
 def _save_client_settings(client):
     _ensure_settings_parent_dir()
-    client.dump_settings(_settings_path())
+    settings_path = _settings_path()
+    client.dump_settings(settings_path)
+    try:
+        os.chmod(settings_path, 0o600)
+    except OSError as error:
+        log(f"Не удалось ограничить доступ к Instagram session file: {error}", level="WARNING")
 
 
 def _fresh_login_client():
@@ -191,13 +209,23 @@ def _get_client(force_relogin=False):
         if _CLIENT is not None and not force_relogin:
             return _CLIENT
 
+        cached_reason = _ACCOUNT_FAILURE_CACHE.get("login")
+        if cached_reason:
+            raise InstagramAccountError(
+                cached_reason,
+                "Instagram account login recently failed; restart the bot after changing IP, proxy, or credentials",
+            )
+
         if not instagram_account_is_configured():
             raise InstagramAccountError("not_configured", "Instagram account credentials are not configured")
 
         try:
             _CLIENT = _login_client()
         except Exception as e:
-            raise InstagramAccountError(_classify_account_exception(e), e) from e
+            reason = _classify_account_exception(e)
+            if reason == "ip_blocked":
+                _ACCOUNT_FAILURE_CACHE.set("login", reason)
+            raise InstagramAccountError(reason, e) from e
         return _CLIENT
 
 
@@ -237,20 +265,27 @@ def _extract_media_payload(client, url):
 
 
 def _run_with_client(action, *, allow_relogin=True):
-    last_error = None
+    """Выполняет операции с одним account client последовательно.
 
-    for attempt in range(2):
-        force_relogin = attempt == 1 and allow_relogin
-        client = _get_client(force_relogin=force_relogin)
-        try:
-            return action(client)
-        except Exception as e:
-            last_error = e
-            reason = _classify_account_exception(e)
-            if reason == "login_required" and allow_relogin and attempt == 0:
-                _invalidate_client()
-                continue
-            raise InstagramAccountError(reason, e) from e
+    instagrapi хранит состояние устройства и сессии внутри Client. Параллельные
+    private API-запросы одного сервисного аккаунта повышают риск rate limit и
+    повреждённой сессии, поэтому операции сериализованы.
+    """
+    with _CLIENT_ACTION_LOCK:
+        last_error = None
+
+        for attempt in range(2):
+            force_relogin = attempt == 1 and allow_relogin
+            client = _get_client(force_relogin=force_relogin)
+            try:
+                return action(client)
+            except Exception as e:
+                last_error = e
+                reason = _classify_account_exception(e)
+                if reason == "login_required" and allow_relogin and attempt == 0:
+                    _invalidate_client()
+                    continue
+                raise InstagramAccountError(reason, e) from e
 
     raise InstagramAccountError(_classify_account_exception(last_error), last_error)
 

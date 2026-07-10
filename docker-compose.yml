@@ -5,6 +5,9 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      INSTAGRAM_ACCOUNT_SESSION_FILE: /app/data/instagram-account-session.json
     volumes:
       - ./logs:/app/logs
       - ./temp:/app/temp
+      - ./data:/app/data

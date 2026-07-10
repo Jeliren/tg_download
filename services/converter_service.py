@@ -229,7 +229,6 @@ def convert_audio_file_to_voice_message(bot, chat_id, user_id, audio_file_id):
                     bot.send_voice,
                     chat_id,
                     voice_file,
-                    caption="✅ Ваше аудиосообщение",
                     timeout=180,
                     max_retries=3,
                 )

@@ -2,7 +2,7 @@ import unittest
 from types import SimpleNamespace
 from unittest import mock
 
-from instagrapi.exceptions import BadPassword, ChallengeRequired, PleaseWaitFewMinutes
+from instagrapi.exceptions import BadCredentials, BadPassword, ChallengeRequired, PleaseWaitFewMinutes
 
 from services import instagram_account_service
 
@@ -13,6 +13,32 @@ class InstagramAccountServiceTests(unittest.TestCase):
             instagram_account_service._classify_account_exception(BadPassword("bad password")),
             "bad_credentials",
         )
+
+    def test_classifies_bad_credentials(self):
+        self.assertEqual(
+            instagram_account_service._classify_account_exception(BadCredentials("bad credentials")),
+            "bad_credentials",
+        )
+
+    def test_classifies_blacklisted_ip_before_bad_credentials(self):
+        self.assertEqual(
+            instagram_account_service._classify_account_exception(
+                BadPassword("Change your IP address, because it is added to the blacklist")
+            ),
+            "ip_blocked",
+        )
+
+    def test_cached_ip_block_skips_another_login_attempt(self):
+        instagram_account_service._ACCOUNT_FAILURE_CACHE = instagram_account_service.ExpiringStore(ttl=60)
+        instagram_account_service._ACCOUNT_FAILURE_CACHE.set("login", "ip_blocked")
+        instagram_account_service._CLIENT = None
+
+        with mock.patch.object(instagram_account_service, "_login_client") as login_client:
+            with self.assertRaises(instagram_account_service.InstagramAccountError) as error_ctx:
+                instagram_account_service._get_client()
+
+        self.assertEqual(error_ctx.exception.reason, "ip_blocked")
+        login_client.assert_not_called()
 
     def test_classifies_challenge(self):
         self.assertEqual(

@@ -3,7 +3,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def _load_dotenv(dotenv_path):
+def _load_dotenv(dotenv_path, *, override=False):
     if not os.path.exists(dotenv_path):
         return
 
@@ -20,7 +20,7 @@ def _load_dotenv(dotenv_path):
             key = key.strip()
             value = value.strip().strip("'\"")
 
-            if key and key not in os.environ:
+            if key and (override or key not in os.environ):
                 os.environ[key] = value
 
 
@@ -54,6 +54,15 @@ def _get_int(name, default, minimum=None):
 
 # Секреты и основные пути
 _load_dotenv(os.path.join(BASE_DIR, ".env"))
+ACTIVE_ENV = os.getenv("TG_DOWNLOAD_ENV", "prod").strip() or "prod"
+ENV_OVERRIDE_FILE = os.getenv("TG_DOWNLOAD_ENV_FILE", "").strip()
+if ENV_OVERRIDE_FILE:
+    override_path = ENV_OVERRIDE_FILE
+    if not os.path.isabs(override_path):
+        override_path = os.path.join(BASE_DIR, override_path)
+    if not os.path.isfile(override_path):
+        raise RuntimeError(f"Не найден файл окружения: {override_path}")
+    _load_dotenv(override_path, override=True)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 TEMP_DIR = os.path.join(BASE_DIR, "temp")
@@ -63,7 +72,7 @@ LOGS_DIR = os.path.join(BASE_DIR, "logs")
 CONNECT_TIMEOUT = _get_int("CONNECT_TIMEOUT", 30, minimum=1)
 READ_TIMEOUT = _get_int("READ_TIMEOUT", 60, minimum=1)
 POLLING_TIMEOUT = _get_int("POLLING_TIMEOUT", 60, minimum=1)
-LONG_POLLING_TIMEOUT = _get_int("LONG_POLLING_TIMEOUT", 40, minimum=1)
+LONG_POLLING_TIMEOUT = _get_int("LONG_POLLING_TIMEOUT", 10, minimum=1)
 MAX_POLLING_RESTARTS = _get_int("MAX_POLLING_RESTARTS", 5, minimum=1)
 POLLING_RESTART_DELAY = _get_int("POLLING_RESTART_DELAY", 5, minimum=0)
 
@@ -78,6 +87,7 @@ MAX_FILE_SIZE = _get_int("MAX_FILE_SIZE", 50 * 1024 * 1024, minimum=1024)
 INSTAGRAM_USERNAME = os.getenv("INSTAGRAM_USERNAME", "").strip()
 INSTAGRAM_PASSWORD = os.getenv("INSTAGRAM_PASSWORD", "").strip()
 INSTAGRAM_COOKIES_FILE = os.getenv("INSTAGRAM_COOKIES_FILE", "").strip()
+INSTAGRAM_PROXY = os.getenv("INSTAGRAM_PROXY", "").strip()
 INSTAGRAM_ACCOUNT_SESSION_FILE = os.getenv(
     "INSTAGRAM_ACCOUNT_SESSION_FILE",
     os.path.join(BASE_DIR, ".instagram-account-session.json"),
@@ -88,6 +98,7 @@ OPENAI_TRANSCRIPTION_MODEL = os.getenv(
     "OPENAI_TRANSCRIPTION_MODEL",
     "gpt-4o-mini-transcribe",
 ).strip() or "gpt-4o-mini-transcribe"
+OPENAI_TRANSCRIPTION_PROMPT = os.getenv("OPENAI_TRANSCRIPTION_PROMPT", "").strip()
 
 # Настройки логирования
 LOGGING_ENABLED = _get_bool("LOGGING_ENABLED", True)
@@ -129,6 +140,7 @@ def get_runtime_warnings():
 
 __all__ = [
     "BOT_TOKEN",
+    "ACTIVE_ENV",
     "BASE_DIR",
     "TEMP_DIR",
     "LOGS_DIR",
@@ -146,10 +158,12 @@ __all__ = [
     "INSTAGRAM_USERNAME",
     "INSTAGRAM_PASSWORD",
     "INSTAGRAM_COOKIES_FILE",
+    "INSTAGRAM_PROXY",
     "INSTAGRAM_ACCOUNT_SESSION_FILE",
     "OPENAI_API_KEY",
     "OPENAI_SUMMARY_MODEL",
     "OPENAI_TRANSCRIPTION_MODEL",
+    "OPENAI_TRANSCRIPTION_PROMPT",
     "LOGGING_ENABLED",
     "LOG_LEVEL",
     "PERFORMANCE_LOGGING",

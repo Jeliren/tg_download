@@ -8,7 +8,7 @@ __all__ = [
 
 import os
 
-from config import OPENAI_API_KEY, OPENAI_TRANSCRIPTION_MODEL
+from config import OPENAI_API_KEY, OPENAI_TRANSCRIPTION_MODEL, OPENAI_TRANSCRIPTION_PROMPT
 from services.openai_client import post_openai_multipart
 
 OPENAI_TRANSCRIPTION_FILE_LIMIT = 25 * 1024 * 1024
@@ -112,11 +112,18 @@ def send_text_chunks(bot, chat_id, text, chunk_size=DEFAULT_TEXT_CHUNK_SIZE, **s
 
 
 def transcribe_audio_with_openai(audio_path):
+    data = {
+        "model": OPENAI_TRANSCRIPTION_MODEL,
+        "response_format": "json",
+    }
+    if OPENAI_TRANSCRIPTION_PROMPT:
+        data["prompt"] = OPENAI_TRANSCRIPTION_PROMPT
+
     with open(audio_path, "rb") as audio_file:
         response = post_openai_multipart(
             "audio/transcriptions",
             api_key=OPENAI_API_KEY,
-            data={"model": OPENAI_TRANSCRIPTION_MODEL},
+            data=data,
             files={"file": (os.path.basename(audio_path), audio_file)},
         )
 

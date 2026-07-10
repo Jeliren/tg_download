@@ -133,6 +133,19 @@ class InstagramServiceHelpersTests(unittest.TestCase):
         self.assertIsNone(result)
         get_media.assert_not_called()
 
+    def test_delivery_completion_is_sent_after_the_media_status_is_removed(self):
+        bot = mock.Mock()
+
+        instagram_service._send_delivery_completion(bot, chat_id=42, status_message_id=100)
+
+        self.assertEqual(
+            bot.mock_calls,
+            [
+                mock.call.delete_message(42, 100),
+                mock.call.send_message(42, "✅ Готово. Готов дальше."),
+            ],
+        )
+
 
 class InstagramServiceRuntimeTests(unittest.TestCase):
     def test_video_download_surfaces_best_effort_unavailable_reason(self):
@@ -162,8 +175,8 @@ class InstagramServiceRuntimeTests(unittest.TestCase):
         )
         self.assertTrue(
             any(
-                "временно ограничил доступ" in call.args[1]
-                for call in bot.send_message.call_args_list
+                "временно ограничил доступ" in (call.args[0] if call.args else "")
+                for call in bot.edit_message_text.call_args_list
             )
         )
         stop_event.set.assert_called_once()
@@ -277,12 +290,6 @@ class InstagramServiceRuntimeTests(unittest.TestCase):
             )
 
         send_text_chunks.assert_called_once_with(bot, 42, "текст рилса")
-        self.assertTrue(
-            any(
-                call.args == (42, instagram_service.READY_FOR_MORE_TEXT)
-                for call in bot.send_message.call_args_list
-            )
-        )
         stop_event.set.assert_called_once()
 
     def test_transcribe_instagram_reel_reports_empty_transcript_honestly(self):

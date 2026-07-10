@@ -18,8 +18,9 @@ from telebot.apihelper import ApiTelegramException
 
 from bot.callback_registry import callback_registry
 from bot.keyboards import create_format_selection_markup, create_transcription_confirmation_markup
-from bot.texts import READY_FOR_MORE_TEXT
 from config import (
+    EXTERNAL_CONNECT_TIMEOUT,
+    EXTERNAL_READ_TIMEOUT,
     MAX_FILE_SIZE,
     OPENAI_API_KEY,
     TEMP_DIR,
@@ -54,6 +55,16 @@ from utils.logging_utils import (
 DEFAULT_VIDEO_SELECTOR = "bv*+ba/b"
 DEFAULT_AUDIO_SELECTOR = "bestaudio/best"
 FORMAT_SELECTION_UI_LIMIT = 6
+YOUTUBE_NETWORK_ERROR_MARKERS = (
+    "timed out",
+    "connection reset",
+    "temporarily unavailable",
+    "network is unreachable",
+    "temporary failure in name resolution",
+)
+YOUTUBE_RATE_LIMIT_MARKERS = ("http error 429", "too many requests", "rate limit")
+YOUTUBE_AUTH_ERROR_MARKERS = ("sign in to confirm", "login required", "cookies")
+YOUTUBE_UNAVAILABLE_MARKERS = ("video unavailable", "private video", "not available in your country")
 
 
 def _is_message_not_modified_error(error):
@@ -157,8 +168,38 @@ def _base_ydl_options():
     return {
         "quiet": True,
         "no_warnings": True,
+        "noprogress": True,
         "noplaylist": True,
+        "socket_timeout": EXTERNAL_CONNECT_TIMEOUT + EXTERNAL_READ_TIMEOUT,
+        "retries": 2,
+        "fragment_retries": 2,
+        "extractor_retries": 2,
     }
+
+
+def _classify_youtube_error(error):
+    text = str(error).lower()
+    if any(marker in text for marker in YOUTUBE_RATE_LIMIT_MARKERS):
+        return "rate_limited"
+    if any(marker in text for marker in YOUTUBE_AUTH_ERROR_MARKERS):
+        return "auth_required"
+    if any(marker in text for marker in YOUTUBE_UNAVAILABLE_MARKERS):
+        return "unavailable"
+    if any(marker in text for marker in YOUTUBE_NETWORK_ERROR_MARKERS):
+        return "network"
+    return "unknown"
+
+
+def _build_youtube_failure_message(error, action):
+    reason = _classify_youtube_error(error)
+    messages = {
+        "rate_limited": "YouTube временно ограничил запросы. Попробуйте ещё раз через несколько минут.",
+        "auth_required": "YouTube запросил авторизацию для этого ролика, поэтому скачать его сейчас нельзя.",
+        "unavailable": "Видео недоступно, приватное или ограничено для вашего региона.",
+        "network": "Не удалось стабильно связаться с YouTube. Попробуйте ещё раз позже.",
+        "unknown": f"Не удалось {action}. Попробуйте другую ссылку или повторите позже.",
+    }
+    return messages[reason]
 
 
 def _parse_vtt_transcript(vtt_text):
@@ -430,7 +471,6 @@ def _send_summary_result(
 ):
     _finalize_status_message(bot, chat_id, status_message_id, success_text)
     bot.send_message(chat_id, f"🧠 Саммари для: {title}\n\n{summary}")
-    bot.send_message(chat_id, READY_FOR_MORE_TEXT)
 
 
 def _ensure_status_message(bot, chat_id, message_id, text):
@@ -508,7 +548,9 @@ def download_youtube_video(bot, chat_id, url, message_id=None, format_id=None):
 
     try:
         requested_format = format_id or "best"
-        candidate_formats = _build_download_candidates(url, requested_format)
+        # Не перебираем качество после любой ошибки: при geo/auth/429 это лишь
+        # создаёт дополнительные запросы к YouTube и ухудшает ситуацию.
+        candidate_formats = [requested_format]
         info = None
         output_path = None
         file_size_mb = 0
@@ -560,11 +602,27 @@ def download_youtube_video(bot, chat_id, url, message_id=None, format_id=None):
                     )
                     _cleanup_temp_dir(attempt_temp_dir)
 
-                    if requested_format == "best" and attempt_index < len(candidate_formats):
-                        log(
-                            f"Файл {attempt_file_size_mb:.2f}MB слишком большой для Telegram, пробую качество ниже",
-                        )
-                        continue
+                    if requested_format == "best":
+                        downloaded_height = attempt_info.get("height")
+                        if downloaded_height and _show_format_selection_prompt(
+                            bot,
+                            chat_id,
+                            url,
+                            message_id=status_message_id,
+                            prompt_text=(
+                                "⚠️ Лучшее качество слишком большое для Telegram. "
+                                "Выберите вариант ниже:"
+                            ),
+                            max_height=downloaded_height,
+                        ):
+                            log_event(
+                                "youtube_video_reoffer_lower_quality",
+                                op=op_id,
+                                chat_id=chat_id,
+                                requested_format="best",
+                                size_mb=f"{attempt_file_size_mb:.2f}",
+                            )
+                            return
 
                     if requested_format != "best":
                         requested_height = _extract_requested_height(candidate_format)
@@ -624,8 +682,6 @@ def download_youtube_video(bot, chat_id, url, message_id=None, format_id=None):
                     candidate_format=candidate_format,
                     error=e,
                 )
-                if requested_format == "best" and attempt_index < len(candidate_formats):
-                    continue
                 raise
 
         if not output_path:
@@ -639,7 +695,7 @@ def download_youtube_video(bot, chat_id, url, message_id=None, format_id=None):
 
         with measure_time("UPLOAD|youtube_video_upload"):
             with open(output_path, "rb") as video_file:
-                sent_message = send_with_retry(bot.send_video, chat_id, video_file, caption=title)
+                sent_message = send_with_retry(bot.send_video, chat_id, video_file)
 
         if sent_message is None:
             _finalize_status_message(bot, chat_id, status_message_id, "❌ Не удалось отправить видео в Telegram.")
@@ -651,7 +707,7 @@ def download_youtube_video(bot, chat_id, url, message_id=None, format_id=None):
             bot,
             chat_id,
             status_message_id,
-            "✅ Видео с YouTube успешно отправлено.",
+            "✅ Готово.",
         )
         log_event(
             "youtube_video_finished",
@@ -660,11 +716,10 @@ def download_youtube_video(bot, chat_id, url, message_id=None, format_id=None):
             size_mb=f"{file_size_mb:.2f}",
             actual_format=format_id,
         )
-        bot.send_message(chat_id, READY_FOR_MORE_TEXT)
     except Exception as e:
         log_event("youtube_video_failed", level="ERROR", op=op_id, chat_id=chat_id, error=e)
         _finalize_status_message(bot, chat_id, status_message_id, "❌ Не удалось скачать видео с YouTube.")
-        bot.send_message(chat_id, "❌ Не удалось скачать видео. Попробуйте другую ссылку.")
+        bot.send_message(chat_id, f"❌ {_build_youtube_failure_message(e, 'скачать видео')}")
     finally:
         progress_stop.set()
         if "temp_dir" in locals():
@@ -726,7 +781,6 @@ def download_youtube_audio(bot, chat_id, url, message_id=None, failure_message_t
                     audio_file,
                     title=title,
                     performer=performer,
-                    caption="✅ Ваше аудио из YouTube",
                 )
 
         if sent_message is None:
@@ -735,15 +789,14 @@ def download_youtube_audio(bot, chat_id, url, message_id=None, failure_message_t
             bot.send_message(chat_id, "❌ Не удалось отправить аудио в Telegram.")
             return
 
-        _finalize_status_message(bot, chat_id, status_message_id, "✅ Аудио из YouTube успешно отправлено.")
+        _finalize_status_message(bot, chat_id, status_message_id, "✅ Готово.")
         log_event("youtube_audio_finished", op=op_id, chat_id=chat_id, size_mb=f"{file_size_mb:.2f}")
-        bot.send_message(chat_id, READY_FOR_MORE_TEXT)
     except Exception as e:
         log_event("youtube_audio_failed", level="ERROR", op=op_id, chat_id=chat_id, error=e)
         _finalize_status_message(bot, chat_id, status_message_id, "❌ Не удалось извлечь аудио из YouTube.")
         bot.send_message(
             chat_id,
-            failure_message_text or "❌ Не удалось извлечь аудио. Попробуйте другую ссылку.",
+            failure_message_text or f"❌ {_build_youtube_failure_message(e, 'извлечь аудио')}",
         )
     finally:
         progress_stop.set()

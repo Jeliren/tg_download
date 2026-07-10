@@ -9,7 +9,6 @@ import os
 
 import requests
 
-from bot.texts import READY_FOR_MORE_TEXT
 from config import OPENAI_API_KEY
 from services.openai_client import OpenAITemporaryError
 from services.summary_service import count_summary_chunks, summarize_transcript_text
@@ -41,7 +40,6 @@ from utils.logging_utils import log_event, measure_time, new_operation_id, perf_
 def _send_summary_result(bot, chat_id, summary, status_message_id):
     _finalize_status_message(bot, chat_id, status_message_id, "✅ Саммари готово.")
     bot.send_message(chat_id, f"🧠 Саммари загруженного аудио\n\n{summary}")
-    bot.send_message(chat_id, READY_FOR_MORE_TEXT)
 
 
 @perf_monitor
@@ -107,7 +105,6 @@ def transcribe_uploaded_audio(bot, chat_id, user_id, audio_file_id, message_id=N
         send_text_chunks(bot, chat_id, transcript_text)
         _finalize_status_message(bot, chat_id, status_message_id, "✅ Расшифровка аудио готова.")
         log_event("uploaded_audio_transcription_finished", op=op_id, chat_id=chat_id, user_id=user_id)
-        bot.send_message(chat_id, READY_FOR_MORE_TEXT)
     except OpenAITemporaryError as error:
         log_event(
             "uploaded_audio_transcription_openai_unavailable", level="ERROR", op=op_id, chat_id=chat_id, error=error

@@ -86,6 +86,15 @@ LOG_LEVEL=INFO
 ./.venv/bin/python main.py
 ```
 
+### Контуры production и test
+
+`.env` хранит production-настройки. `.env.test` переопределяет только токен тестового бота и не попадает в Git. Токены вводить при каждом запуске не нужно:
+
+```bash
+./scripts/run_test.sh  # тестовый бот
+./scripts/run_prod.sh  # основной бот
+```
+
 Для Ubuntu есть bootstrap-скрипт:
 
 ```bash
@@ -130,6 +139,7 @@ docker compose down
 - `OPENAI_API_KEY` — нужен для саммари и расшифровки;
 - `OPENAI_SUMMARY_MODEL` — модель для саммари, по умолчанию `gpt-5-mini`;
 - `OPENAI_TRANSCRIPTION_MODEL` — модель для транскрипции, по умолчанию `gpt-4o-mini-transcribe`.
+- `OPENAI_TRANSCRIPTION_PROMPT` — необязательный контекст с именами, брендами и терминами для более точной расшифровки.
 
 Если `OPENAI_API_KEY` не задан, бот продолжит работать, но OpenAI-сценарии будут недоступны.
 
@@ -138,10 +148,15 @@ docker compose down
 - `INSTAGRAM_USERNAME` и `INSTAGRAM_PASSWORD` — учётные данные сервисного аккаунта для `instagrapi`;
 - `INSTAGRAM_ACCOUNT_SESSION_FILE` — путь к файлу сохранённой сессии сервисного аккаунта;
 - `INSTAGRAM_COOKIES_FILE` — необязательный `cookiefile` для `yt-dlp` public path.
+- `INSTAGRAM_PROXY` — необязательный стабильный proxy для account mode и `yt-dlp`, когда серверный IP ограничен Instagram.
 
 Если заданы `INSTAGRAM_USERNAME` и `INSTAGRAM_PASSWORD`, бот сначала пробует account mode для shortcode-based ссылок и сохраняет рабочую сессию в `INSTAGRAM_ACCOUNT_SESSION_FILE`. Если account mode не подходит для URL или не даёт результата, сервис продолжает обработку через public fallback.
 
+Session file содержит данные авторизации. Храните его и `.env` с правами `600`. В Docker session file лежит в локальной папке `data/`, которая сохраняется между пересозданиями контейнера и не попадает в Git.
+
 `INSTAGRAM_COOKIES_FILE` полезен как дополнительный override для `yt-dlp`, но не является обязательной частью развёртывания.
+
+Если Instagram сообщает, что IP сервера в blacklist, смена пароля не поможет: нужен новый стабильный IP/proxy либо cookies от авторизованной сессии.
 
 ### Таймауты, лимиты и логи
 

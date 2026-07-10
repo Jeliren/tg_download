@@ -11,6 +11,7 @@ __pycache__
 .ruff_cache
 logs
 temp
+data
 tests
 PROJECT_REWORK_PLAN.md
 .instagram-account-session.json

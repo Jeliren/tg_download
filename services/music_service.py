@@ -7,6 +7,7 @@ from typing import Any
 
 import yt_dlp
 
+from config import EXTERNAL_CONNECT_TIMEOUT, EXTERNAL_READ_TIMEOUT
 from utils.logging_utils import log
 
 MAX_MUSIC_RESULTS = 15
@@ -44,9 +45,13 @@ def _base_search_options() -> dict[str, Any]:
     return {
         "quiet": True,
         "no_warnings": True,
+        "noprogress": True,
         "noplaylist": True,
         "extract_flat": "in_playlist",
         "skip_download": True,
+        "socket_timeout": EXTERNAL_CONNECT_TIMEOUT + EXTERNAL_READ_TIMEOUT,
+        "retries": 2,
+        "extractor_retries": 2,
     }
 
 

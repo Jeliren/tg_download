@@ -5,6 +5,22 @@ from services import youtube_service
 
 
 class YouTubeServiceHelpersTests(unittest.TestCase):
+    def test_base_options_have_network_timeouts_and_retries(self):
+        options = youtube_service._base_ydl_options()
+
+        self.assertEqual(
+            options["socket_timeout"],
+            youtube_service.EXTERNAL_CONNECT_TIMEOUT + youtube_service.EXTERNAL_READ_TIMEOUT,
+        )
+        self.assertEqual(options["retries"], 2)
+        self.assertEqual(options["fragment_retries"], 2)
+
+    def test_classifies_youtube_rate_limit_error(self):
+        self.assertEqual(
+            youtube_service._classify_youtube_error(RuntimeError("HTTP Error 429: Too Many Requests")),
+            "rate_limited",
+        )
+
     def test_parse_vtt_transcript_skips_headers_and_only_deduplicates_consecutive_lines(self):
         transcript = youtube_service._parse_vtt_transcript(
             "\n".join(

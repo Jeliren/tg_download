@@ -3,10 +3,12 @@ __pycache__/
 *.log
 .DS_Store
 .env
+.env.test
 .venv/
 venv/
 .ruff_cache/
 temp/
 logs/
+data/
 .instagram-account-session.json
 .instagram-session-cookies.txt

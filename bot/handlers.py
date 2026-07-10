@@ -48,7 +48,6 @@ from bot.texts import (
     MUSIC_PROMPT_TEXT,
     MUSIC_RESULTS_FOREIGN_USER_TEXT,
     MUSIC_SEARCHING_TEXT,
-    READY_FOR_MORE_TEXT,
     SERVICE_BUSY_TEXT,
     UNKNOWN_COMMAND_TEXT,
     WAIT_PREVIOUS_OPERATION_TEXT,
@@ -277,7 +276,7 @@ class BotHandlerCoordinator:
             self.bot.send_message(chat_id, text, reply_markup=markup)
 
     def _handle_youtube_url(self, message, url):
-        status_message = self.bot.reply_to(message, "⏳ Загружаю информацию о видео...")
+        status_message = self.bot.reply_to(message, "✅ Выберите действие:")
         url_id = callback_registry.register_action_url(url)
 
         self._try_edit_message(
@@ -286,16 +285,6 @@ class BotHandlerCoordinator:
             "✅ Выберите действие:",
             reply_markup=create_inline_markup(url_id, include_summary=True),
         )
-
-        future = self._submit_background_task(
-            "youtube_availability_check",
-            self._check_youtube_availability_thread,
-            message.chat.id,
-            url,
-            status_message.message_id,
-        )
-        if future is None:
-            log("Пропускаем фоновую проверку YouTube доступности из-за перегруженной очереди", level="WARNING")
 
     def _handle_generic_media_url(self, message, url):
         status_message = self.bot.reply_to(message, "🔍 Проверяю ссылку...")
@@ -835,7 +824,6 @@ class BotHandlerCoordinator:
                 )
 
             if success:
-                self.bot.send_message(chat_id, READY_FOR_MORE_TEXT)
                 log_event("video_note_finished", op=op_id, chat_id=chat_id, user_id=user_id)
         except Exception as e:
             log_event("video_note_failed", level="ERROR", op=op_id, chat_id=chat_id, user_id=user_id, error=e)
@@ -938,7 +926,6 @@ class BotHandlerCoordinator:
                 )
 
             if success:
-                self.bot.send_message(chat_id, READY_FOR_MORE_TEXT)
                 log_event("audio_message_finished", op=op_id, chat_id=chat_id, user_id=user_id)
         except Exception as e:
             log_event("audio_message_failed", level="ERROR", op=op_id, chat_id=chat_id, user_id=user_id, error=e)
@@ -1061,6 +1048,10 @@ class BotHandlerCoordinator:
     def _submit_background_task(self, task_name, target, *args):
         return self.runtime.task_runner.submit(task_name, target, *args)
 
+    def shutdown(self, wait=True):
+        """Не очищать временные файлы, пока фоновые задачи не завершены."""
+        self.runtime.task_runner.shutdown(wait=wait)
+
     def _try_edit_message(self, chat_id, message_id, text, reply_markup=None):
         try:
             self.bot.edit_message_text(
@@ -1078,4 +1069,6 @@ class BotHandlerCoordinator:
 
 def register_handlers(bot):
     """Регистрация всех обработчиков бота."""
-    BotHandlerCoordinator(bot).register()
+    coordinator = BotHandlerCoordinator(bot)
+    coordinator.register()
+    return coordinator

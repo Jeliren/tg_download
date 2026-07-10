@@ -22,11 +22,11 @@ from requests.adapters import HTTPAdapter
 from telebot import types
 from telebot.apihelper import ApiTelegramException
 
-from bot.texts import READY_FOR_MORE_TEXT
 from config import (
     EXTERNAL_CONNECT_TIMEOUT,
     EXTERNAL_READ_TIMEOUT,
     INSTAGRAM_COOKIES_FILE,
+    INSTAGRAM_PROXY,
     MAX_DOWNLOAD_ATTEMPTS,
     MAX_FILE_SIZE,
     OPENAI_API_KEY,
@@ -125,6 +125,8 @@ INSTAGRAM_ACCOUNT_REASON_MAP = {
     "two_factor_required": "account_two_factor_required",
     "login_required": "auth_required",
     "rate_limited": "rate_limited",
+    "ip_blocked": "account_ip_blocked",
+    "network": "network",
     "video_missing": "unknown",
     "not_configured": "not_configured",
     "unsupported_url": "unsupported_url",
@@ -208,6 +210,7 @@ def _build_yt_dlp_options(format_type, temp_dir=None, download=True, auth_option
     options = {
         "quiet": True,
         "no_warnings": True,
+        "noprogress": True,
         "noplaylist": True,
         "socket_timeout": EXTERNAL_CONNECT_TIMEOUT + EXTERNAL_READ_TIMEOUT,
         "retries": 2,
@@ -245,6 +248,8 @@ def _build_yt_dlp_options(format_type, temp_dir=None, download=True, auth_option
 
     if auth_options:
         options.update(auth_options)
+    if INSTAGRAM_PROXY:
+        options["proxy"] = INSTAGRAM_PROXY
 
     return options
 
@@ -280,7 +285,14 @@ def _sleep_before_retry(label, attempt):
 
 def _build_instagram_user_message(reason, action="скачать этот рилс"):
     messages = {
-        "account_auth_failed": ("Instagram service account не смог авторизоваться. Проверьте логин и пароль сервиса."),
+        "account_auth_failed": (
+            "Instagram отклонил вход service account. Пароль мог не меняться: "
+            "часто требуется подтвердить вход или пройти повторную авторизацию."
+        ),
+        "account_ip_blocked": (
+            "Instagram заблокировал IP сервера для service account. "
+            "Нужен другой стабильный IP/прокси или обновлённые cookies Instagram."
+        ),
         "account_challenge_required": (
             "Instagram запросил challenge для service account. "
             "Пока challenge не будет пройден, получить этот рилс стабильно не получится."
@@ -854,11 +866,7 @@ def _download_instagram_video_asset(url):
     try:
         return _download_with_yt_dlp(url, "video")
     except InstagramUnavailableError as e:
-        if account_error and account_error.reason in {
-            "account_auth_failed",
-            "account_challenge_required",
-            "account_two_factor_required",
-        }:
+        if account_error and account_error.reason == "account_ip_blocked":
             raise account_error
         if e.reason != "unknown":
             raise
@@ -926,11 +934,7 @@ def _download_instagram_audio_asset(url):
     try:
         return _download_with_yt_dlp(url, "audio")
     except InstagramUnavailableError as audio_error:
-        if account_error and account_error.reason in {
-            "account_auth_failed",
-            "account_challenge_required",
-            "account_two_factor_required",
-        }:
+        if account_error and account_error.reason == "account_ip_blocked":
             raise account_error
         if audio_error.reason not in {"unknown", "auth_required", "rate_limited"}:
             raise
@@ -967,6 +971,17 @@ def _finalize_status_message(bot, chat_id, message_id, text):
         log(f"Не удалось финализировать статусное сообщение: {e}", level="DEBUG")
     except Exception as e:
         log(f"Не удалось финализировать статусное сообщение: {e}", level="DEBUG")
+
+
+def _send_delivery_completion(bot, chat_id, status_message_id):
+    """Убирает промежуточный статус и отправляет подтверждение после медиа."""
+    if status_message_id:
+        try:
+            bot.delete_message(chat_id, status_message_id)
+        except Exception as error:
+            log(f"Не удалось удалить промежуточный Instagram-статус: {error}", level="DEBUG")
+
+    bot.send_message(chat_id, "✅ Готово. Готов дальше.")
 
 
 def _send_safe_instagram_failure(bot, chat_id, status_message_id, status_text, user_text):
@@ -1029,7 +1044,6 @@ def download_instagram_video(bot, chat_id, url, message_id=None):
                     bot.send_video,
                     chat_id,
                     video_file,
-                    caption="✅ Ваше видео из Instagram",
                 )
 
         if sent_message is None:
@@ -1043,9 +1057,8 @@ def download_instagram_video(bot, chat_id, url, message_id=None):
             bot.send_message(chat_id, "❌ Не удалось отправить видео в Telegram.")
             return
 
-        _finalize_status_message(bot, chat_id, status_message_id, "✅ Видео из Instagram успешно отправлено.")
+        _send_delivery_completion(bot, chat_id, status_message_id)
         log_event("instagram_video_finished", op=op_id, chat_id=chat_id, size_mb=f"{file_size_mb:.2f}")
-        bot.send_message(chat_id, READY_FOR_MORE_TEXT)
     except InstagramUnavailableError as e:
         user_message = _build_instagram_user_message(e.reason, action="скачать этот рилс")
         log_event(
@@ -1057,7 +1070,6 @@ def download_instagram_video(bot, chat_id, url, message_id=None):
             error=e.detail or e.reason,
         )
         _finalize_status_message(bot, chat_id, status_message_id, f"⚠️ {user_message}")
-        bot.send_message(chat_id, f"⚠️ {user_message}")
     except Exception as e:
         log_event("instagram_video_failed", level="ERROR", op=op_id, chat_id=chat_id, error=e)
         _send_safe_instagram_failure(
@@ -1104,7 +1116,6 @@ def download_instagram_audio(bot, chat_id, url, message_id=None):
             performer = info.get("artist") or info.get("uploader")
 
         send_kwargs = {
-            "caption": "✅ Ваше аудио из Instagram",
             "title": title,
         }
         if performer:
@@ -1130,9 +1141,8 @@ def download_instagram_audio(bot, chat_id, url, message_id=None):
             bot.send_message(chat_id, "❌ Не удалось отправить аудио в Telegram.")
             return
 
-        _finalize_status_message(bot, chat_id, status_message_id, "✅ Аудио из Instagram успешно отправлено.")
+        _send_delivery_completion(bot, chat_id, status_message_id)
         log_event("instagram_audio_finished", op=op_id, chat_id=chat_id, size_mb=f"{file_size_mb:.2f}")
-        bot.send_message(chat_id, READY_FOR_MORE_TEXT)
     except InstagramUnavailableError as e:
         user_message = _build_instagram_user_message(e.reason, action="получить аудио из этого рилса")
         log_event(
@@ -1218,7 +1228,6 @@ def download_instagram_description(bot, chat_id, url, message_id=None):
         )
         _finalize_status_message(bot, chat_id, status_message_id, "✅ Описание рилса отправлено.")
         log_event("instagram_description_finished", op=op_id, chat_id=chat_id)
-        bot.send_message(chat_id, READY_FOR_MORE_TEXT)
     except Exception as e:
         log_event("instagram_description_failed", level="ERROR", op=op_id, chat_id=chat_id, error=e)
         _send_safe_instagram_failure(
@@ -1313,7 +1322,6 @@ def transcribe_instagram_reel(bot, chat_id, url, message_id=None):
         send_text_chunks(bot, chat_id, transcript_text)
         _finalize_status_message(bot, chat_id, status_message_id, "✅ Расшифровка рилса готова.")
         log_event("instagram_transcription_finished", op=op_id, chat_id=chat_id)
-        bot.send_message(chat_id, READY_FOR_MORE_TEXT)
     except InstagramUnavailableError as e:
         user_message = _build_instagram_user_message(e.reason, action="расшифровать этот рилс")
         log_event(

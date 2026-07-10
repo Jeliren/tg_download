@@ -16,6 +16,7 @@ Instagram здесь самый нестабильный внешний исто
 - public scraping периодически ломается;
 - часть ссылок работает только с авторизацией;
 - часть сценариев ломается не из-за кода, а из-за challenge / rate limit / audience restrictions.
+- IP серверного аккаунта также может быть заблокирован Instagram; это не равнозначно неверному паролю.
 
 Поэтому Instagram-слой должен быть не “магическим”, а честным и хорошо задокументированным.
 
@@ -48,6 +49,7 @@ Instagram здесь самый нестабильный внешний исто
 
 - `yt-dlp` без browser cookies;
 - optional `cookiefile` override, если он явно задан;
+- optional `INSTAGRAM_PROXY` для account mode и public fallback;
 - HTML/meta/direct-media fallback там, где это оправдано.
 
 Это best-effort путь, а не гарантированный API.

@@ -45,7 +45,7 @@ def create_bot():
 
     from bot.handlers import register_handlers
 
-    register_handlers(bot)
+    bot.handler_coordinator = register_handlers(bot)
     return bot
 
 

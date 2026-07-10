@@ -36,6 +36,17 @@ class ConfigValidationTests(unittest.TestCase):
             config._load_dotenv(dotenv_path)
             self.assertEqual(os.getenv("STAGE1_DOTENV_TEST"), "value")
 
+    def test_load_dotenv_override_replaces_existing_value(self):
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as dotenv_file:
+            dotenv_file.write("STAGE1_DOTENV_TEST=override\n")
+            dotenv_path = dotenv_file.name
+
+        self.addCleanup(lambda: os.path.exists(dotenv_path) and os.remove(dotenv_path))
+
+        with patch.dict(os.environ, {"STAGE1_DOTENV_TEST": "base"}, clear=True):
+            config._load_dotenv(dotenv_path, override=True)
+            self.assertEqual(os.getenv("STAGE1_DOTENV_TEST"), "override")
+
 
 if __name__ == "__main__":
     unittest.main()

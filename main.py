@@ -7,6 +7,7 @@ import yt_dlp
 
 from bot import create_bot
 from config import (
+    ACTIVE_ENV,
     LONG_POLLING_TIMEOUT,
     MAX_POLLING_RESTARTS,
     POLLING_RESTART_DELAY,
@@ -86,6 +87,7 @@ def main():
 
         log_event(
             "runtime_started",
+            environment=ACTIVE_ENV,
             yt_dlp_version=_yt_dlp_version(),
             temp_dir=TEMP_DIR,
         )
@@ -135,6 +137,12 @@ def main():
         log(f"Не удалось инициализировать бота: {e}", level="ERROR")
         return 1
     finally:
+        coordinator = getattr(shutdown_controller._bot, "handler_coordinator", None)
+        if coordinator is not None:
+            try:
+                coordinator.shutdown(wait=True)
+            except Exception as exc:
+                log(f"Не удалось дождаться завершения фоновых задач: {exc}", level="WARNING")
         cleanup_temp_folder()
 
 if __name__ == "__main__":
