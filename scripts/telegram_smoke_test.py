@@ -3,14 +3,20 @@
 
 from __future__ import annotations
 
-import os
 import sys
+from pathlib import Path
 
 import requests
 
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
+
+from config import BOT_TOKEN  # noqa: E402
+
 
 def main():
-    token = os.getenv("BOT_TOKEN", "").strip()
+    token = BOT_TOKEN.strip()
     if not token or ":" not in token:
         print("BOT_TOKEN is not configured", file=sys.stderr)
         return 2
