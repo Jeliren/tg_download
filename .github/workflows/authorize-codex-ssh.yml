@@ -1,0 +1,36 @@
+name: Authorize Codex SSH key
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authorize-key:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      PROD_HOST: ${{ secrets.PROD_HOST }}
+      PROD_PORT: ${{ secrets.PROD_PORT }}
+      PROD_USER: ${{ secrets.PROD_USER }}
+      PROD_SSH_PRIVATE_KEY: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+      PROD_KNOWN_HOSTS: ${{ secrets.PROD_KNOWN_HOSTS }}
+
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$PROD_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$PROD_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+
+      - name: Authorize this Mac's SSH key
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -p "$PROD_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$PROD_USER@$PROD_HOST" \
+            'install -d -m 700 ~/.ssh; touch ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys; grep -qxF "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbI2PppeJd+E4U1gktpnGHv8y+s1Ho2QXMnZRchxLA5 shemetov@MacBook-Pro-16-German-2.local" ~/.ssh/authorized_keys || printf "%s\\n" "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFbI2PppeJd+E4U1gktpnGHv8y+s1Ho2QXMnZRchxLA5 shemetov@MacBook-Pro-16-German-2.local" >> ~/.ssh/authorized_keys'
