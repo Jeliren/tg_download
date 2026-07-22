@@ -3,6 +3,7 @@
 __all__ = [
     "UploadedMediaNoAudioError",
     "cleanup_temp_dir",
+    "convert_audio_to_mp3",
     "create_temp_dir",
     "download_telegram_file",
     "ensure_status_message",
@@ -98,12 +99,12 @@ def download_telegram_file(bot, telegram_file_id, temp_dir, base_name, default_e
     return output_path
 
 
-def extract_audio_from_video(video_path, audio_path):
-    """Извлекает mono MP3-дорожку из видео для транскрипции."""
+def convert_audio_to_mp3(input_path, output_path):
+    """Нормализует аудиодорожку в mono MP3, принимаемый OpenAI."""
     cmd = [
         "ffmpeg",
         "-i",
-        video_path,
+        input_path,
         "-vn",
         "-ac",
         "1",
@@ -114,12 +115,17 @@ def extract_audio_from_video(video_path, audio_path):
         "-acodec",
         "mp3",
         "-y",
-        audio_path,
+        output_path,
     ]
     process = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     if process.returncode != 0:
         raise RuntimeError(process.stderr or "ffmpeg завершился с ошибкой при извлечении аудио")
-    return audio_path
+    return output_path
+
+
+def extract_audio_from_video(video_path, audio_path):
+    """Извлекает mono MP3-дорожку из видео для транскрипции."""
+    return convert_audio_to_mp3(video_path, audio_path)
 
 
 def prepare_uploaded_video_audio(bot, video_file_id, temp_dir):
@@ -142,11 +148,13 @@ def prepare_uploaded_video_audio(bot, video_file_id, temp_dir):
 
 
 def prepare_uploaded_audio(bot, audio_file_id, temp_dir):
-    """Скачивает загруженный Telegram audio/voice файл во временную папку."""
-    return download_telegram_file(
+    """Скачивает Telegram audio/voice и нормализует его в MP3 для OpenAI."""
+    source_path = download_telegram_file(
         bot,
         audio_file_id,
         temp_dir,
         "uploaded_audio",
         default_extension=".mp3",
     )
+    audio_path = os.path.join(temp_dir, "uploaded_audio_prepared.mp3")
+    return convert_audio_to_mp3(source_path, audio_path)
