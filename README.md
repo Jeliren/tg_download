@@ -214,6 +214,7 @@ sudo systemctl enable --now tg_download_bot.service
 
 ## Документация
 
+- [docs/OPERATIONS.md](docs/OPERATIONS.md) — production-доступ, GitHub Actions, секреты, логи, обновление, проверка и откат.
 - [docs/PROJECT_ARCHITECTURE.md](docs/PROJECT_ARCHITECTURE.md) — обзор проекта и карта остальных документов.
 - [docs/CORE_AND_INFRASTRUCTURE.md](docs/CORE_AND_INFRASTRUCTURE.md) — конфигурация, lifecycle процесса, logging, concurrency и temp files.
 - [docs/ROUTING_AND_UPLOADED_MEDIA.md](docs/ROUTING_AND_UPLOADED_MEDIA.md) — Telegram routing, callback payloads и uploaded media flows.

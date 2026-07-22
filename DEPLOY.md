@@ -1,5 +1,10 @@
 # Deploy Guide
 
+> Фактическая конфигурация текущего production, прямой SSH-доступ, GitHub
+> Actions, безопасная работа с секретами, проверка версии и откат описаны в
+> [docs/OPERATIONS.md](docs/OPERATIONS.md). Этот файл оставлен как общий гайд для
+> развёртывания на новой машине.
+
 Ниже два рабочих сценария развёртывания проекта на другой машине.
 
 ## Вариант 1. Через GitHub и локальный Python
@@ -115,9 +120,12 @@ docker compose logs --since=24h bot
 Проверить версию развёрнутого кода и `yt-dlp`, не раскрывая секреты:
 
 ```bash
-git log -1 --oneline
+cat /opt/tg_download/.deployed-revision
 ./.venv/bin/python -c "import yt_dlp; print(yt_dlp.version.__version__)"
 ```
+
+Production-каталог текущего проекта разворачивается через `rsync` и не содержит
+`.git`, поэтому `git log` там не является способом проверки версии.
 
 ## Что хранить в GitHub, а что нет
 

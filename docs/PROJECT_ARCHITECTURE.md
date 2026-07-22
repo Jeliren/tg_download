@@ -174,7 +174,12 @@ Service layer делится на domain-specific модули, а не на о�
 
 Если нужен общий вход:
 
-- начните с [README.md](/Users/shemetov/Projects/tg_download/README.md)
+- начните с [README.md](../README.md)
+
+Если нужно подключиться к production, посмотреть логи, обновить GitHub/сервер
+или сделать откат:
+
+- читайте [docs/OPERATIONS.md](OPERATIONS.md)
 
 Если нужен общий архитектурный обзор:
 
@@ -182,12 +187,12 @@ Service layer делится на domain-specific модули, а не на о�
 
 Если нужен конкретный слой:
 
-- infrastructure: [docs/CORE_AND_INFRASTRUCTURE.md](/Users/shemetov/Projects/tg_download/docs/CORE_AND_INFRASTRUCTURE.md)
-- routing/uploaded media orchestration: [docs/ROUTING_AND_UPLOADED_MEDIA.md](/Users/shemetov/Projects/tg_download/docs/ROUTING_AND_UPLOADED_MEDIA.md)
-- OpenAI/text layer: [docs/OPENAI_AND_TEXT_PROCESSING.md](/Users/shemetov/Projects/tg_download/docs/OPENAI_AND_TEXT_PROCESSING.md)
-- YouTube: [docs/YOUTUBE_FLOWS.md](/Users/shemetov/Projects/tg_download/docs/YOUTUBE_FLOWS.md)
-- Instagram: [docs/INSTAGRAM_FLOWS.md](/Users/shemetov/Projects/tg_download/docs/INSTAGRAM_FLOWS.md)
-- uploaded media services: [docs/UPLOADED_MEDIA_SERVICES.md](/Users/shemetov/Projects/tg_download/docs/UPLOADED_MEDIA_SERVICES.md)
+- infrastructure: [docs/CORE_AND_INFRASTRUCTURE.md](CORE_AND_INFRASTRUCTURE.md)
+- routing/uploaded media orchestration: [docs/ROUTING_AND_UPLOADED_MEDIA.md](ROUTING_AND_UPLOADED_MEDIA.md)
+- OpenAI/text layer: [docs/OPENAI_AND_TEXT_PROCESSING.md](OPENAI_AND_TEXT_PROCESSING.md)
+- YouTube: [docs/YOUTUBE_FLOWS.md](YOUTUBE_FLOWS.md)
+- Instagram: [docs/INSTAGRAM_FLOWS.md](INSTAGRAM_FLOWS.md)
+- uploaded media services: [docs/UPLOADED_MEDIA_SERVICES.md](UPLOADED_MEDIA_SERVICES.md)
 
 ## Что сознательно не делалось
 

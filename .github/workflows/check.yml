@@ -91,4 +91,4 @@ jobs:
           set -euo pipefail
           ssh -p "$PROD_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes \
             "$PROD_USER@$PROD_HOST" \
-            'set -eu; cd /opt/tg_download; python3 -m venv .venv; .venv/bin/pip install --upgrade pip; .venv/bin/pip install -r requirements.txt; .venv/bin/python -m compileall -q main.py bot services utils core config.py; sudo systemctl restart tg_download_bot.service; sudo systemctl is-active --quiet tg_download_bot.service'
+            'set -eu; cd /opt/tg_download; python3 -m venv .venv; .venv/bin/pip install --upgrade pip; .venv/bin/pip install -r requirements.txt; .venv/bin/python -m compileall -q main.py bot services utils core config.py; printf "%s\n" "${{ github.sha }}" > .deployed-revision; sudo systemctl restart tg_download_bot.service; sudo systemctl is-active --quiet tg_download_bot.service'
