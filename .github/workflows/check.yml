@@ -79,6 +79,8 @@ jobs:
             --exclude='.env' \
             --exclude='.env.*' \
             --exclude='.venv/' \
+            --exclude='__pycache__/' \
+            --exclude='*.py[cod]' \
             --exclude='data/' \
             --exclude='logs/' \
             --exclude='temp/' \

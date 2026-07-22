@@ -181,7 +181,8 @@ Workflow `.github/workflows/check.yml` делает следующее:
 1. На любом push/PR запускает lint, unit tests и compile-check.
 2. Только для `main` после успешной проверки запускает production deploy.
 3. Передаёт код в `/opt/tg_download` через `rsync --delete`.
-4. Не трогает `.env`, `.env.*`, `.venv/`, `data/`, `logs/`, `temp/` и `.git/`.
+4. Не трогает `.env`, `.env.*`, `.venv/`, `__pycache__/`, `*.pyc`, `data/`,
+   `logs/`, `temp/` и `.git/`.
 5. Пересоздаёт/обновляет `.venv`, устанавливает `requirements.txt`.
 6. Записывает SHA развернутого коммита в
    `/opt/tg_download/.deployed-revision`.
@@ -218,12 +219,15 @@ Telegram smoke test на сервере:
 
 ```bash
 ssh -o BatchMode=yes -o StrictHostKeyChecking=yes root@195.63.161.180 \
-  'cd /opt/tg_download && .venv/bin/python scripts/telegram_smoke_test.py'
+  'cd /opt/tg_download && runuser -u tgdownload -- .venv/bin/python scripts/telegram_smoke_test.py'
 ```
 
 Smoke test должен показать доступное имя бота, отсутствие webhook и нормальное
 число pending updates. Он читает production token через `config.py`, но не
 выводит токен.
+
+Важно запускать Python-проверки от `tgdownload`, а не от root: иначе в каталоге
+проекта могут появиться root-owned `__pycache__`, мешающие следующему `rsync`.
 
 После этого просмотреть свежие ошибки:
 
