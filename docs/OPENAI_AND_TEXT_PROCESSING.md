@@ -84,7 +84,10 @@
 
 - принимает локальный путь к аудиофайлу;
 - отправляет файл в OpenAI;
-- использует `gpt-4o-mini-transcribe` по умолчанию; это экономичный вариант для обычных расшифровок;
+- использует
+  [`gpt-4o-mini-transcribe`](https://developers.openai.com/api/docs/models/gpt-4o-mini-transcribe)
+  по умолчанию; это поддерживаемый экономичный вариант для обычных
+  расшифровок;
 - при заданном `OPENAI_TRANSCRIPTION_PROMPT` передаёт контекст с именами и терминами для повышения точности;
 - возвращает только итоговый текст.
 
@@ -96,6 +99,15 @@
 - summary logic.
 
 Это важно: transcription service — технический building block, а не orchestration-слой.
+
+Для summary по умолчанию используется
+[`gpt-5-mini`](https://developers.openai.com/api/docs/models/gpt-5-mini). Он
+поддерживается и остаётся дешевле новых флагманских моделей. Менять default
+следует только после сравнения качества и расходов на реальных транскриптах.
+
+Telegram `.oga` и другие входные аудиоформаты до этого слоя нормализуются в
+mono MP3 внутри `uploaded_media_service.py`. Это не позволяет расширение файла
+мешать работе поддерживаемого transcription endpoint.
 
 ### Chunking для отправки в Telegram
 

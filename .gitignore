@@ -7,8 +7,15 @@ __pycache__/
 .venv/
 venv/
 .ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 temp/
 logs/
 data/
+.deployed-revision
+*.bak
+*.backup
 .instagram-account-session.json
 .instagram-session-cookies.txt

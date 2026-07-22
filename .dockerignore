@@ -13,6 +13,14 @@ logs
 temp
 data
 tests
-PROJECT_REWORK_PLAN.md
+AGENTS.md
+BACKLOG.md
+CHANGELOG.md
+DEPLOY.md
+docs
+deploy
+Makefile
+pyproject.toml
+requirements-dev.txt
 .instagram-account-session.json
 .instagram-session-cookies.txt

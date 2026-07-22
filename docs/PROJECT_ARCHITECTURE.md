@@ -38,7 +38,7 @@
 - runtime config;
 - logging bootstrap.
 
-Подробности: [docs/CORE_AND_INFRASTRUCTURE.md](/Users/shemetov/Projects/tg_download/docs/CORE_AND_INFRASTRUCTURE.md)
+Подробности: [docs/CORE_AND_INFRASTRUCTURE.md](CORE_AND_INFRASTRUCTURE.md)
 
 ### `bot/`
 
@@ -57,7 +57,7 @@
 
 `bot/handlers.py` координирует сценарии, но не должен тащить в себя низкоуровневую media/OpenAI логику.
 
-Подробности: [docs/ROUTING_AND_UPLOADED_MEDIA.md](/Users/shemetov/Projects/tg_download/docs/ROUTING_AND_UPLOADED_MEDIA.md)
+Подробности: [docs/ROUTING_AND_UPLOADED_MEDIA.md](ROUTING_AND_UPLOADED_MEDIA.md)
 
 ### `services/`
 
@@ -76,10 +76,10 @@ Service layer делится на domain-specific модули, а не на о�
 
 Подробности:
 
-- [docs/OPENAI_AND_TEXT_PROCESSING.md](/Users/shemetov/Projects/tg_download/docs/OPENAI_AND_TEXT_PROCESSING.md)
-- [docs/YOUTUBE_FLOWS.md](/Users/shemetov/Projects/tg_download/docs/YOUTUBE_FLOWS.md)
-- [docs/INSTAGRAM_FLOWS.md](/Users/shemetov/Projects/tg_download/docs/INSTAGRAM_FLOWS.md)
-- [docs/UPLOADED_MEDIA_SERVICES.md](/Users/shemetov/Projects/tg_download/docs/UPLOADED_MEDIA_SERVICES.md)
+- [docs/OPENAI_AND_TEXT_PROCESSING.md](OPENAI_AND_TEXT_PROCESSING.md)
+- [docs/YOUTUBE_FLOWS.md](YOUTUBE_FLOWS.md)
+- [docs/INSTAGRAM_FLOWS.md](INSTAGRAM_FLOWS.md)
+- [docs/UPLOADED_MEDIA_SERVICES.md](UPLOADED_MEDIA_SERVICES.md)
 
 ### `core/` и `utils/`
 
@@ -93,7 +93,7 @@ Service layer делится на domain-specific модули, а не на о�
 
 Они не должны становиться вторым application layer.
 
-Подробности: [docs/CORE_AND_INFRASTRUCTURE.md](/Users/shemetov/Projects/tg_download/docs/CORE_AND_INFRASTRUCTURE.md)
+Подробности: [docs/CORE_AND_INFRASTRUCTURE.md](CORE_AND_INFRASTRUCTURE.md)
 
 ## End-to-end user flows
 
@@ -175,6 +175,8 @@ Service layer делится на domain-specific модули, а не на о�
 Если нужен общий вход:
 
 - начните с [README.md](../README.md)
+- история изменений: [CHANGELOG.md](../CHANGELOG.md)
+- следующие важные задачи: [BACKLOG.md](../BACKLOG.md)
 
 Если нужно подключиться к production, посмотреть логи, обновить GitHub/сервер
 или сделать откат:

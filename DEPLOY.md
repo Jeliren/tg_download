@@ -14,7 +14,7 @@
 ### Linux (Ubuntu)
 
 ```bash
-git clone git@github.com:Jeliren/tg_download.git
+git clone https://github.com/Jeliren/tg_download.git
 cd tg_download
 ./scripts/bootstrap_ubuntu.sh
 cp .env.example .env
@@ -42,7 +42,7 @@ chmod 600 .env .instagram-account-session.json .instagram-session-cookies.txt 2>
 4. Клонировать проект:
 
 ```powershell
-git clone git@github.com:Jeliren/tg_download.git
+git clone https://github.com/Jeliren/tg_download.git
 cd tg_download
 py -m venv .venv
 .venv\Scripts\pip install --upgrade pip
@@ -67,7 +67,7 @@ Copy-Item .env.example .env
 3. Клонировать проект и создать `.env`.
 
 ```bash
-git clone git@github.com:Jeliren/tg_download.git
+git clone https://github.com/Jeliren/tg_download.git
 cd tg_download
 cp .env.example .env
 ```

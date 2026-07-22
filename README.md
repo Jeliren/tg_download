@@ -41,6 +41,10 @@
 - `audio` и audio-документы: `🎙 Аудиосообщение`, `📝 Расшифровка`, `🧠 Саммари`;
 - `voice`: `📝 Расшифровка`, `🧠 Саммари`.
 
+Обычный cloud Bot API позволяет боту скачать входящий файл только примерно до
+`20 MB`. Это отдельное ограничение Telegram и оно может сработать раньше
+внутренних лимитов конвертации или OpenAI.
+
 ## Как устроен проект
 
 Код разделён на несколько простых слоёв:
@@ -137,8 +141,14 @@ docker compose down
 ### OpenAI-сценарии
 
 - `OPENAI_API_KEY` — нужен для саммари и расшифровки;
-- `OPENAI_SUMMARY_MODEL` — модель для саммари, по умолчанию `gpt-5-mini`;
-- `OPENAI_TRANSCRIPTION_MODEL` — модель для транскрипции, по умолчанию `gpt-4o-mini-transcribe`.
+- `OPENAI_SUMMARY_MODEL` — модель для саммари, по умолчанию
+  [`gpt-5-mini`](https://developers.openai.com/api/docs/models/gpt-5-mini);
+- `OPENAI_TRANSCRIPTION_MODEL` — модель для транскрипции, по умолчанию
+  [`gpt-4o-mini-transcribe`](https://developers.openai.com/api/docs/models/gpt-4o-mini-transcribe).
+
+Обе модели выбраны осознанно как экономичные. Новые флагманские модели не нужно
+подставлять автоматически: сначала следует сравнить качество саммари и стоимость
+на нескольких реальных примерах.
 - `OPENAI_TRANSCRIPTION_PROMPT` — необязательный контекст с именами, брендами и терминами для более точной расшифровки.
 
 Если `OPENAI_API_KEY` не задан, бот продолжит работать, но OpenAI-сценарии будут недоступны.
@@ -212,8 +222,16 @@ sudo systemctl enable --now tg_download_bot.service
 ./.venv/bin/ruff check .
 ```
 
+Ручной smoke test реального YouTube audio/video flow без отправки в Telegram:
+
+```bash
+./.venv/bin/python scripts/smoke_media_flows.py --youtube '<короткая публичная YouTube-ссылка>'
+```
+
 ## Документация
 
+- [CHANGELOG.md](CHANGELOG.md) — заметные изменения проекта по датам.
+- [BACKLOG.md](BACKLOG.md) — короткий живой список следующих важных улучшений.
 - [docs/OPERATIONS.md](docs/OPERATIONS.md) — production-доступ, GitHub Actions, секреты, логи, обновление, проверка и откат.
 - [docs/PROJECT_ARCHITECTURE.md](docs/PROJECT_ARCHITECTURE.md) — обзор проекта и карта остальных документов.
 - [docs/CORE_AND_INFRASTRUCTURE.md](docs/CORE_AND_INFRASTRUCTURE.md) — конфигурация, lifecycle процесса, logging, concurrency и temp files.
@@ -226,5 +244,6 @@ sudo systemctl enable --now tg_download_bot.service
 ## Практические замечания
 
 - не коммитьте `.env` и не публикуйте токены;
-- при запуске на сервере полезно периодически обновлять `yt-dlp` внутри `.venv`;
+- `yt-dlp` обновляется через pin в `requirements.txt`, проверки и обычный deploy;
+  вручную менять только production `.venv` не следует;
 - после обновления зависимостей имеет смысл прогнать проверки и сделать короткий smoke test на реальных YouTube и Instagram ссылках.

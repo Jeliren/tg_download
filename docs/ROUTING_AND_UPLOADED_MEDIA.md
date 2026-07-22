@@ -153,6 +153,7 @@
 - `message_id`
 - `file_id`
 - `user_id`
+- `media_type`
 
 Registry всё ещё умеет собрать payload из сырого Telegram message для обратной совместимости и тестов, но основной runtime-путь теперь использует уже подготовленные данные. Это уменьшает риск повторной “угадайки” и ошибок вроде `file_id not specified`.
 

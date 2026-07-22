@@ -104,9 +104,12 @@ Workflow подключается как `tgdownload` отдельным deploy-
 - `PROD_KNOWN_HOSTS`
 
 GitHub remote настроен как
-`https://github.com/Jeliren/tg_download.git`; на этом Mac HTTPS-учётные данные
-обычно берутся из macOS Keychain. Если используется GitHub connector, он должен
-работать с тем же репозиторием `Jeliren/tg_download`.
+`https://github.com/Jeliren/tg_download.git`. GitHub connector установлен,
+авторизован и должен работать с репозиторием `Jeliren/tg_download`. Терминальный
+HTTPS `git push` на этом Mac может не иметь отдельной сессии и вернуть
+`could not read Username ... Device not configured`; это не означает отсутствие
+доступа у connector. После connector-write выполнить `git fetch origin` и
+синхронизировать рабочую ветку с новым `origin/main`.
 
 Токены, пароли и приватные ключи нельзя добавлять в Git, issue, PR, Actions log
 или сообщение чата. Для проверки конфигурации выводить только наличие ключей,
@@ -323,6 +326,11 @@ release, менять pin осознанно и проверять как мин
 На production Actions сам выполнит `pip install -r requirements.txt`. Ручное
 обновление пакета только на сервере создаёт незадокументированный drift и не
 должно быть постоянным решением.
+
+Текущие запланированные инфраструктурные улучшения и их безопасный порядок
+описаны в [`BACKLOG.md`](../BACKLOG.md). В частности, SSH-вход по паролю нельзя
+отключать до проверки второго одновременного входа по ключу и доступности
+recovery console провайдера.
 
 ## 12. Аварийный откат
 
