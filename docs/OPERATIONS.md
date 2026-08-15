@@ -59,6 +59,11 @@ ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
 Ожидается UID `0` и hostname сервера. Этот путь уже проверен и позволяет читать
 systemd journal, проверять файлы и выполнять административные действия.
 
+На 2026-08-15 эффективная конфигурация `sshd` на production подтверждена так:
+`PubkeyAuthentication yes`, `PasswordAuthentication no`,
+`KbdInteractiveAuthentication no`. Вход root возможен только по ключу;
+проверка нового входа с указанным ключом и чтения journal прошла успешно.
+
 ### Доступ GitHub Actions
 
 Workflow подключается как `tgdownload` отдельным deploy-ключом. Его приватная
@@ -328,9 +333,8 @@ release, менять pin осознанно и проверять как мин
 должно быть постоянным решением.
 
 Текущие запланированные инфраструктурные улучшения и их безопасный порядок
-описаны в [`BACKLOG.md`](../BACKLOG.md). В частности, SSH-вход по паролю нельзя
-отключать до проверки второго одновременного входа по ключу и доступности
-recovery console провайдера.
+описаны в [`BACKLOG.md`](../BACKLOG.md). Для уже выполненных security-изменений
+смотрите [`CHANGELOG.md`](../CHANGELOG.md).
 
 ## 12. Аварийный откат
 
