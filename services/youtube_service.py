@@ -174,7 +174,6 @@ def _base_ydl_options():
         "retries": 2,
         "fragment_retries": 2,
         "extractor_retries": 2,
-        "impersonate": "chrome",
     }
 
 
