@@ -15,7 +15,6 @@ import time
 import requests
 import yt_dlp
 from telebot.apihelper import ApiTelegramException
-from yt_dlp.networking.impersonate import ImpersonateTarget
 
 from bot.callback_registry import callback_registry
 from bot.keyboards import create_format_selection_markup, create_transcription_confirmation_markup
@@ -175,7 +174,7 @@ def _base_ydl_options():
         "retries": 2,
         "fragment_retries": 2,
         "extractor_retries": 2,
-        "impersonate": ImpersonateTarget.from_str("chrome"),
+        "impersonate": "chrome",
     }
 
 
