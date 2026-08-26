@@ -189,6 +189,30 @@ class YouTubeServiceHelpersTests(unittest.TestCase):
 
 
 class YouTubeServiceRuntimeTests(unittest.TestCase):
+    def test_download_youtube_audio_returns_false_when_ytdlp_fails(self):
+        bot = mock.Mock()
+        stop_event = mock.Mock()
+        ydl_instance = mock.MagicMock()
+        ydl_instance.__enter__.return_value.extract_info.side_effect = RuntimeError(
+            "HTTP Error 403: Forbidden",
+        )
+
+        with (
+            mock.patch.object(youtube_service, "start_progress_message", return_value=stop_event),
+            mock.patch.object(youtube_service, "_create_temp_dir", return_value="/tmp/youtube_audio"),
+            mock.patch.object(youtube_service, "_cleanup_temp_dir"),
+            mock.patch("services.youtube_service.yt_dlp.YoutubeDL", return_value=ydl_instance),
+        ):
+            result = youtube_service.download_youtube_audio(
+                bot,
+                chat_id=42,
+                url="https://youtu.be/test",
+                message_id=100,
+            )
+
+        self.assertFalse(result)
+        stop_event.set.assert_called_once()
+
     def test_download_youtube_video_reoffers_lower_quality_when_selected_quality_is_too_large(self):
         bot = mock.Mock()
         stop_event = mock.Mock()

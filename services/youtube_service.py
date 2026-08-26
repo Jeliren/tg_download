@@ -798,6 +798,7 @@ def download_youtube_audio(bot, chat_id, url, message_id=None, failure_message_t
             chat_id,
             failure_message_text or f"❌ {_build_youtube_failure_message(e, 'извлечь аудио')}",
         )
+        return False
     finally:
         progress_stop.set()
         _cleanup_temp_dir(temp_dir)

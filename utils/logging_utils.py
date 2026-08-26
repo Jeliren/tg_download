@@ -143,7 +143,10 @@ def perf_monitor(func):
         # Выполняем функцию
         try:
             result = func(*args, **kwargs)
-            success = True
+            # Обработчики скачивания могут корректно поймать ошибку и вернуть
+            # False вместо повторного выброса исключения. Не помечаем такой
+            # результат как успешный в performance-логе.
+            success = result is not False
         except Exception as e:
             success = False
             log(f"Ошибка при выполнении {func_name}: {e}", "ERROR")
