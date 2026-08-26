@@ -14,6 +14,7 @@ class YouTubeServiceHelpersTests(unittest.TestCase):
         )
         self.assertEqual(options["retries"], 2)
         self.assertEqual(options["fragment_retries"], 2)
+        self.assertEqual(options["impersonate"], "chrome")
 
     def test_classifies_youtube_rate_limit_error(self):
         self.assertEqual(
